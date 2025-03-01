@@ -25,7 +25,13 @@ function runCommand(command, cwd) {
 
 // Function to start the Flask backend
 function startFlaskBackend() {
-  return runCommand("python app.py", "./flask-backend");
+  const flaskBackendPath = "./flask-backend";
+  const pythonCommand =
+    process.platform === "win32"
+      ? "venv\\Scripts\\python app.py"
+      : "venv/bin/python3 app.py";
+
+  return runCommand(pythonCommand, flaskBackendPath);
 }
 
 // Function to start the Expo app

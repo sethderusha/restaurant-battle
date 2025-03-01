@@ -1,6 +1,7 @@
 const { exec } = require("child_process");
 const fs = require("fs");
 const readline = require("readline");
+const path = require("path");
 
 // Function to run shell commands
 function runCommand(command, cwd) {
@@ -30,17 +31,38 @@ function askQuestion(query) {
   );
 }
 
+// Function to check if a virtual environment exists
+function isVenvInstalled(flaskBackendPath) {
+  const venvPath = path.join(flaskBackendPath, "venv");
+  return fs.existsSync(venvPath);
+}
+
 async function setupProject() {
   try {
     console.log("Installing Node.js dependencies...");
     await runCommand("npm install", "./");
 
+    const flaskBackendPath = "./flask-backend";
+
+    // Check if a virtual environment exists
+    if (!isVenvInstalled(flaskBackendPath)) {
+      console.log("Creating a virtual environment...");
+      await runCommand("python3 -m venv venv", flaskBackendPath);
+    }
+
     console.log("Installing Python dependencies...");
-    await runCommand("pip install -r requirements.txt", "./flask-backend");
+
+    // Activate the virtual environment and install dependencies
+    const pipCommand =
+      process.platform === "win32"
+        ? "venv\\Scripts\\pip install -r requirements.txt"
+        : "venv/bin/pip3 install -r requirements.txt";
+
+    await runCommand(pipCommand, flaskBackendPath);
 
     const googleApiKey = await askQuestion("Enter your Google API Key: ");
 
-    const envFilePath = "./flask-backend/.env";
+    const envFilePath = path.join(flaskBackendPath, ".env");
     const envContent = `GOOGLE_API_KEY=${googleApiKey}\n`;
 
     fs.writeFileSync(envFilePath, envContent, { flag: "a" });
