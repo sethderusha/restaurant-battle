@@ -9,13 +9,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes to allow Expo app to connect
+CORS(app)
 
 # Get Google API key from environment variables
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 
 # In-memory storage for restaurants
-# In a production app, you might want to use a database
+# TODO: We need to make this a database
 restaurants_cache = {
     # Format: {session_id: {"all": [list_of_restaurants], "current": [current_two_restaurants]}}
 }
@@ -180,5 +180,5 @@ def get_photo():
     return response.content, response.status_code, response.headers.items()
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=True)
