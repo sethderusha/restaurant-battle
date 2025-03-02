@@ -26,7 +26,8 @@ restaurant-battle/
 │── api/                # Backend API logic 
 │── app/                # Frontend application code 
 │── assets/             # Static assets (images, icons, etc.) 
-│── flask-backend/      # Flask backend service 
+│── flask-backend/      # Flask backend service
+│── models/             # Useful classes/models
 │── node_modules/       # Dependencies (auto-generated) 
 │── scripts/            # Utility scripts
 ```
