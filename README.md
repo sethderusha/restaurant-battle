@@ -22,13 +22,13 @@
 
 2. Project Layout
 
-restaurant-battle/
-│── api/                # Backend API logic
-│── app/                # Frontend application code
-│── assets/             # Static assets (images, icons, etc.)
-│── flask-backend/      # Flask backend service
-│── node_modules/       # Dependencies (auto-generated)
-│── scripts/            # Utility scripts
+restaurant-battle/ \n
+│── api/                # Backend API logic \n
+│── app/                # Frontend application code \n
+│── assets/             # Static assets (images, icons, etc.) \n
+│── flask-backend/      # Flask backend service \n
+│── node_modules/       # Dependencies (auto-generated) \n
+│── scripts/            # Utility scripts \n
 
 3. Tech Stack
 
