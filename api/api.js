@@ -37,11 +37,10 @@ export const getNearbyRestaurants = async (
   }
 };
 
-export const getNextRestaurant = async (sessionId, keptRestaurantId) => {
+export const getNextRestaurant = async (sessionId) => {
   try {
     const response = await apiClient.post("/api/next-restaurant", {
       session_id: sessionId,
-      kept_restaurant_id: keptRestaurantId,
     });
     return response.data;
   } catch (error) {

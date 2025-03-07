@@ -1,9 +1,10 @@
 import { View } from "react-native";
-import { Card } from "@/components/Card"; // Make sure this import matches how Card is exported
+import { Card } from "@/components/Card";
 import { getNearbyRestaurants, getPhotoUrl } from "@/api/api";
 import { v4 as uuidv4 } from "uuid";
 import { useState, useEffect } from "react";
-import Restaurant from "@/models/Restaurant"; // Update this path to match your file structure
+import Restaurant from "@/models/Restaurant";
+import User from "@/models/User";
 
 export type BattleViewProps = {
   left: CardProps;
@@ -30,25 +31,36 @@ export function BattleView({
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const newSession = uuidv4(); // sessionId
-        console.log("Fetching restaurants...");
+        const userLocation = await User.getLocation(); // Fetch location from User model
+
+        if (!userLocation) {
+          setError("Could not get user location");
+          setLoading(false);
+          return;
+        }
+
+        console.log(
+          "User's location:",
+          userLocation.latitude,
+          userLocation.longitude,
+        );
+
+        const newSession = uuidv4();
         const result = await getNearbyRestaurants(
           newSession,
-          40.736352105736536,
-          -73.99093648525601,
+          userLocation.latitude,
+          userLocation.longitude,
         );
 
         console.log("API response received");
 
-        if (result && result.restaurants && result.restaurants.length >= 2) {
-          // Convert raw data to Restaurant instances
+        if (result?.restaurants?.length >= 2) {
           const restaurantObjects = result.restaurants.map(
             (restaurantData) => new Restaurant(restaurantData),
           );
 
           setRestaurants(restaurantObjects);
 
-          // Update the cards with the first two restaurants
           if (restaurantObjects.length >= 2) {
             setLeftCard({
               name: restaurantObjects[0].name,
@@ -56,11 +68,11 @@ export function BattleView({
             });
 
             setRightCard({
-              name: restaurantObjects[1].name,
+              name: getPhotoUrl(result.restaurants[1].photo_reference),
               image: getPhotoUrl(result.restaurants[1].photo_reference),
             });
 
-            setCurrentIndex(2); // Start with the next restaurant being at index 2
+            setCurrentIndex(2);
           }
 
           console.log("Cards updated with restaurant data");
@@ -77,7 +89,7 @@ export function BattleView({
     };
 
     fetchRestaurants();
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
 
   // Handle card click - keep the selected card and replace the other with a new restaurant
   const handleCardClick = (side: "left" | "right") => {

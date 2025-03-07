@@ -17,41 +17,36 @@ GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 # In-memory storage for restaurants
 # TODO: We need to make this a database
 restaurants_cache = {
-    # Format: {session_id: {"all": [list_of_restaurants], "current": [current_two_restaurants]}}
+    # Format: {session_id: {"all": [list_of_restaurants], "index": current_index}}
 }
 
 @app.route('/api/nearby-restaurants', methods=['GET'])
 def get_nearby_restaurants():
-    # Get parameters from request
     session_id = request.args.get('session_id', '')
     latitude = request.args.get('latitude')
     longitude = request.args.get('longitude')
     radius = request.args.get('radius', 1000)  # Default radius: 1000 meters
 
-    # Validate required parameters
     if not all([session_id, latitude, longitude]):
         return jsonify({"error": "Missing required parameters"}), 400
 
-    # Check if we already have restaurants for this session
     if session_id in restaurants_cache:
-        # Return the current two restaurants
-        return jsonify({"restaurants": restaurants_cache[session_id]["current"]}), 200
+        # Return the current restaurant pair
+        index = restaurants_cache[session_id]["index"]
+        restaurants = restaurants_cache[session_id]["all"]
+        return jsonify({"restaurants": restaurants[index:index+2]}), 200
 
-    # If no cached data, fetch from Google Places API
     try:
         restaurants = fetch_restaurants_from_google(latitude, longitude, radius)
-
         if not restaurants:
             return jsonify({"error": "No restaurants found nearby"}), 404
 
-        # Store all restaurants in cache
         restaurants_cache[session_id] = {
             "all": restaurants,
-            "current": random.sample(restaurants, min(2, len(restaurants)))
+            "index": 0
         }
 
-        # Return the current two restaurants
-        return jsonify({"restaurants": restaurants_cache[session_id]["current"]}), 200
+        return jsonify({"restaurants": restaurants[:2]}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -60,46 +55,24 @@ def get_nearby_restaurants():
 def get_next_restaurant():
     data = request.json
     session_id = data.get('session_id', '')
-    kept_restaurant_id = data.get('kept_restaurant_id', '')
 
-    # Validate required parameters
-    if not all([session_id, kept_restaurant_id]):
-        return jsonify({"error": "Missing required parameters"}), 400
+    if not session_id:
+        return jsonify({"error": "Missing session_id"}), 400
 
-    # Check if session exists
     if session_id not in restaurants_cache:
         return jsonify({"error": "Session not found"}), 404
 
     session_data = restaurants_cache[session_id]
-    current_restaurants = session_data["current"]
     all_restaurants = session_data["all"]
+    index = session_data["index"]
 
-    # Find the restaurant to keep
-    kept_restaurant = None
-    for restaurant in current_restaurants:
-        if restaurant["place_id"] == kept_restaurant_id:
-            kept_restaurant = restaurant
-            break
-
-    if not kept_restaurant:
-        return jsonify({"error": "Kept restaurant not found in current options"}), 404
-
-    # Find a new restaurant that's not already in current selection
-    current_ids = [r["place_id"] for r in current_restaurants]
-    available_restaurants = [r for r in all_restaurants if r["place_id"] not in current_ids]
-
-    if not available_restaurants:
-        return jsonify({"error": "No more restaurants available"}), 404
-
-    # Select a random new restaurant
-    new_restaurant = random.choice(available_restaurants)
-
-    # Update current restaurants
-    session_data["current"] = [kept_restaurant, new_restaurant]
+    # Move to the next restaurant, stopping at the end
+    next_index = min(index + 1, len(all_restaurants) - 1)
+    restaurants_cache[session_id]["index"] = next_index
 
     return jsonify({
-        "restaurants": session_data["current"],
-        "remaining_count": len(available_restaurants) - 1
+        "restaurant": all_restaurants[next_index],
+        "remaining_count": len(all_restaurants) - next_index - 1
     }), 200
 
 @app.route('/api/reset-session', methods=['POST'])
