@@ -5,8 +5,8 @@ import { BattleView } from "@/components/BattleView";
 
 export default function Index() {
   // apiFunctions.resetSession();
-  let leftCard= {name:"Din Tai Fung", image: "https://s3-media0.fl.yelpcdn.com/bphoto/9P8b9sHCne0SxCojUjILVA/o.jpg"};
-  let rightCard= {name:"Fish Taco", image: "https://s3-media0.fl.yelpcdn.com/bphoto/K1sL1SnnZLsdb3O0Rugw2w/o.jpg"};
+  let leftCard= {name:"San Marzano", image: "https://lh5.googleusercontent.com/p/AF1QipOJIoxbkEWctMAecij3sWNHAMTnlErwDhq8GZ4e=w408-h306-k-no"};
+  let rightCard= {name:"Veselka", image: "https://lh5.googleusercontent.com/p/AF1QipNrZx3OFboCC9wJj0-mEzmxbK4niClm5jsp9T3d=w408-h307-k-no"};
   return (
     <View>
       <BattleView left={leftCard} right={rightCard}></BattleView>

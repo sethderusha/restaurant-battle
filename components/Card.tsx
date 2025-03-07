@@ -11,11 +11,10 @@ export type CardProps  = {
 }
 
 export function Card({name, image}:CardProps) {
-    
     return (
         <div style={styles.card}> 
-            <h1>{name}</h1>
-            <img src={image} width="200px"/>
+            <h1 style={styles.title}>{name}</h1>
+            <div style={styles.image}><img src={image}/></div>
         </div>
     );
 }
@@ -23,8 +22,27 @@ export function Card({name, image}:CardProps) {
 const styles = {
     card: {
        borderRadius: '20px',
-       width: '40%',
-       height: 'auto',
-       backgroundColor: 'lightBlue',
+       width: '350px',
+       height: '500px',
+       backgroundColor: '#3C6E71',
+    },
+    image: {
+        width: '300px',
+        height: '250px',
+        overflow: 'hidden',
+        bottom: 0,
+        marginLeft: '25px',
+        borderRadius: '20px'
+    },
+    title: {
+        color: '#FFFFFF',
+        fontFamily: 'sans-serif',
+        textAlign: 'center',
+        backgroundColor: '#284B63',
+        borderRadius: '20px 20px 0px 0px',
+        marginTop: 0,
+        paddingTop: '25px',
+        height: '100px'
     }
+    
 }
