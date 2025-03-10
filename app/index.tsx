@@ -1,9 +1,11 @@
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { CardProps } from "@/components/Card";
-import * as apiFunctions from "@/api/api";
 import { BattleView } from "@/components/BattleView";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Index() {
+  const { user } = useAuth();
+
   // Use your original static cards
   const leftCard: CardProps = {
     name: "San Marzano",
