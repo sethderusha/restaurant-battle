@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { View, StyleSheet, Text } from "react-native";
 import { Card } from "@/components/Card";
 import { getNearbyRestaurants, getPhotoUrl } from "@/api/api";
 import { v4 as uuidv4 } from "uuid";
@@ -20,7 +20,6 @@ export function BattleView({
   left: initialLeft,
   right: initialRight,
 }: BattleViewProps) {
-  // Start with the provided initial cards
   const [leftCard, setLeftCard] = useState(initialLeft);
   const [rightCard, setRightCard] = useState(initialRight);
   const [loading, setLoading] = useState(true);
@@ -31,16 +30,17 @@ export function BattleView({
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const userLocation = await User.getLocation(); // Fetch location from User model
+        console.log("Starting to fetch user location...");
+        const userLocation = await User.getLocation();
 
         if (!userLocation) {
-          setError("Could not get user location");
+          setError("Could not get user location. Please enable location services.");
           setLoading(false);
           return;
         }
 
         console.log(
-          "User's location:",
+          "Got user location:",
           userLocation.latitude,
           userLocation.longitude,
         );
@@ -52,37 +52,39 @@ export function BattleView({
           userLocation.longitude,
         );
 
-        console.log("API response received");
+        console.log("API response:", result);
 
         if (result?.restaurants?.length >= 2) {
           const restaurantObjects = result.restaurants.map(
-            (restaurantData) => new Restaurant(restaurantData),
+            (restaurantData: any) => new Restaurant(restaurantData),
           );
 
           setRestaurants(restaurantObjects);
 
-          if (restaurantObjects.length >= 2) {
-            setLeftCard({
-              name: restaurantObjects[0].name,
-              image: getPhotoUrl(result.restaurants[0].photo_reference),
-            });
+          // Update both cards with the first two restaurants
+          setLeftCard({
+            name: restaurantObjects[0].name,
+            image: getPhotoUrl(result.restaurants[0].photo_reference),
+          });
 
-            setRightCard({
-              name: getPhotoUrl(result.restaurants[1].photo_reference),
-              image: getPhotoUrl(result.restaurants[1].photo_reference),
-            });
+          setRightCard({
+            name: restaurantObjects[1].name,
+            image: getPhotoUrl(result.restaurants[1].photo_reference),
+          });
 
-            setCurrentIndex(2);
-          }
-
+          setCurrentIndex(2);
           console.log("Cards updated with restaurant data");
         } else {
-          console.error("Invalid data structure:", result);
-          setError("Failed to load restaurant data");
+          console.error("Not enough restaurants returned:", result);
+          setError("Not enough restaurants found in your area");
         }
       } catch (error) {
-        console.error("Error fetching restaurants:", error);
-        setError("Error loading restaurants");
+        console.error("Error in fetchRestaurants:", error);
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load nearby restaurants",
+        );
       } finally {
         setLoading(false);
       }
@@ -91,10 +93,9 @@ export function BattleView({
     fetchRestaurants();
   }, []);
 
-  // Handle card click - keep the selected card and replace the other with a new restaurant
   const handleCardClick = (side: "left" | "right") => {
     if (restaurants.length <= currentIndex) {
-      console.log("No more restaurants to show");
+      setError("No more restaurants to show");
       return;
     }
 
@@ -106,7 +107,6 @@ export function BattleView({
         "https://via.placeholder.com/400x300?text=No+Image",
     };
 
-    // Keep the clicked card, replace the other
     if (side === "left") {
       setRightCard(nextCard);
     } else {
@@ -119,41 +119,57 @@ export function BattleView({
     );
   };
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading nearby restaurants...</Text>
+      </View>
+    );
+  }
+
   return (
-    <div style={styles.centerDiv}>
+    <View style={styles.container}>
       {error ? (
-        <p>Error: {error}</p>
+        <Text style={styles.errorText}>{error}</Text>
       ) : (
-        <>
-          <div
-            onClick={() => handleCardClick("left")}
+        <View style={styles.cardsContainer}>
+          <View
+            onTouchEnd={() => handleCardClick("left")}
             style={styles.cardContainer}
           >
-            {/* Render Card component properly */}
             <Card name={leftCard.name} image={leftCard.image} />
-          </div>
-          <div
-            onClick={() => handleCardClick("right")}
+          </View>
+          <View
+            onTouchEnd={() => handleCardClick("right")}
             style={styles.cardContainer}
           >
             <Card name={rightCard.name} image={rightCard.image} />
-          </div>
-        </>
+          </View>
+        </View>
       )}
-    </div>
+    </View>
   );
 }
 
-const styles = {
-  centerDiv: {
+const styles = StyleSheet.create({
+  container: {
     width: "75%",
     height: "auto",
-    alignSelf: "center",
-    display: "flex",
-    justifyContent: "space-between",
+    alignSelf: "center" as const,
     marginTop: "10%",
   },
-  cardContainer: {
-    cursor: "pointer",
+  cardsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
   },
-};
+  cardContainer: {
+    flex: 1,
+    maxWidth: "45%",
+  },
+  errorText: {
+    color: "red",
+    textAlign: "center" as const,
+    width: "100%",
+  },
+});
