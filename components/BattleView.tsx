@@ -205,19 +205,19 @@ export function BattleView({
 
 const styles = StyleSheet.create({
   container: {
-    width: "75%",
-    height: "auto",
-    alignSelf: "center" as const,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: "10%",
   },
   cardsContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-evenly",
+    alignItems: "center",
     width: "100%",
   },
   cardContainer: {
-    flex: 1,
-    maxWidth: "45%",
+    // Remove flex and maxWidth to prevent container from being larger than needed
   },
   errorText: {
     color: "red",
