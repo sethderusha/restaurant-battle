@@ -6,7 +6,7 @@ import React from 'react';
 
 export type CardProps  = {
     name: string;
-    image: string;
+    image: string | null;
 
 }
 

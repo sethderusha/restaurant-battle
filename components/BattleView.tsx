@@ -1,6 +1,6 @@
 import { View, StyleSheet, Text } from "react-native";
-import { Card } from "@/components/Card";
-import { getNearbyRestaurants, getPhotoUrl } from "@/api/api";
+import { Card, CardProps } from "@/components/Card";
+import { getNearbyRestaurants, getNextRestaurant, getPhotoUrl } from "@/api/api";
 import { v4 as uuidv4 } from "uuid";
 import { useState, useEffect } from "react";
 import Restaurant from "@/models/Restaurant";
@@ -11,10 +11,6 @@ export type BattleViewProps = {
   right: CardProps;
 };
 
-export type CardProps = {
-  name: string;
-  image: string;
-};
 
 export function BattleView({
   left: initialLeft,
@@ -26,6 +22,37 @@ export function BattleView({
   const [error, setError] = useState<string | null>(null);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const newSession = uuidv4();
+  console.log('!!!!!!!!!!!!');
+  console.log(newSession);
+  console.log('!!!!!!!!!!!!');
+
+  const getNext = async (side: "left" | "right") => {
+    try{
+      const nextRestaurant = await getNextRestaurant();
+      //map return value to restaurant object
+      let nextRestaurantObject = new Restaurant(nextRestaurant.restaurant);
+      let imageUrl = nextRestaurantObject.getPrimaryPhotoUrl();
+      if (imageUrl === null){
+        imageUrl = 'assets/images/react-logo.png';
+      }
+      let nextRestaurantProps : CardProps = 
+        {name: nextRestaurantObject.name, 
+        image: imageUrl};
+
+      if (side === 'left'){
+        setRightCard(nextRestaurantProps);
+      }
+
+      else if (side === 'right'){
+        setLeftCard(nextRestaurantProps);
+      }
+
+    }
+    catch(error){
+      console.error("Error getting next restaurant", error);
+    }
+  }
 
   useEffect(() => {
     const fetchRestaurants = async () => {
@@ -45,12 +72,14 @@ export function BattleView({
           userLocation.longitude,
         );
 
-        const newSession = uuidv4();
+        
+
         const result = await getNearbyRestaurants(
           newSession,
           userLocation.latitude,
           userLocation.longitude,
         );
+
 
         console.log("API response:", result);
 
@@ -90,33 +119,36 @@ export function BattleView({
       }
     };
 
+
     fetchRestaurants();
   }, []);
 
   const handleCardClick = (side: "left" | "right") => {
-    if (restaurants.length <= currentIndex) {
-      setError("No more restaurants to show");
-      return;
-    }
+    // if (restaurants.length <= currentIndex) {
+    //   setError("No more restaurants to show");
+    //   return;
+    // }
+    console.log('!!!!!!!!!!!!!');
+    getNext(side);
+    
+    // const nextRestaurant = restaurants[currentIndex];
+    // const nextCard: CardProps = {
+    //   name: nextRestaurant.name,
+    //   image:
+    //     nextRestaurant.getPrimaryPhotoUrl() ||
+    //     "https://via.placeholder.com/400x300?text=No+Image",
+    // };
 
-    const nextRestaurant = restaurants[currentIndex];
-    const nextCard: CardProps = {
-      name: nextRestaurant.name,
-      image:
-        nextRestaurant.getPrimaryPhotoUrl() ||
-        "https://via.placeholder.com/400x300?text=No+Image",
-    };
+    // if (side === "left") {
+    //   setRightCard(nextCard);
+    // } else {
+    //   setLeftCard(nextCard);
+    // }
 
-    if (side === "left") {
-      setRightCard(nextCard);
-    } else {
-      setLeftCard(nextCard);
-    }
-
-    setCurrentIndex(currentIndex + 1);
-    console.log(
-      `Clicked ${side} card. Showing next restaurant: ${nextRestaurant.name}`,
-    );
+    // setCurrentIndex(currentIndex + 1);
+    // console.log(
+    //   `Clicked ${side} card. Showing next restaurant: ${nextRestaurant.name}`,
+    // );
   };
 
   if (loading) {
@@ -134,13 +166,13 @@ export function BattleView({
       ) : (
         <View style={styles.cardsContainer}>
           <View
-            onTouchEnd={() => handleCardClick("left")}
+            onPointerDown={() => handleCardClick("left")}
             style={styles.cardContainer}
           >
             <Card name={leftCard.name} image={leftCard.image} />
           </View>
           <View
-            onTouchEnd={() => handleCardClick("right")}
+            onPointerDown={() => handleCardClick("right")}
             style={styles.cardContainer}
           >
             <Card name={rightCard.name} image={rightCard.image} />
