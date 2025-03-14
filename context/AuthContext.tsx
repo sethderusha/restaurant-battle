@@ -6,8 +6,9 @@ import User from '@/models/User';
 type AuthContextType = {
   isAuthenticated: boolean;
   user: User | null;
-  login: (username: string) => void;
-  signup: (username: string, displayName: string) => void;
+  isLoading: boolean;
+  login: (username: string) => Promise<void>;
+  signup: (username: string, displayName: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -27,6 +28,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const segments = useSegments();
   const router = useRouter();
 
@@ -45,30 +47,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, segments]);
 
   const handlePostAuth = async (newUser: User) => {
-    // Request location permission after successful authentication
-    await User.requestLocationPermission();
-    // Update user's location
-    await newUser.updateLocation();
-    setUser(newUser);
-    setIsAuthenticated(true);
+    try {
+      // Request location permission after successful authentication
+      await User.requestLocationPermission();
+      // Update user's location
+      await newUser.updateLocation();
+      setUser(newUser);
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error('Error in post-auth setup:', error);
+      // Clear any partial auth state since location is required
+      setUser(null);
+      setIsAuthenticated(false);
+      throw new Error('Location access is required to use this app. Please enable location services and try again.');
+    }
   };
 
   const login = async (username: string) => {
-    const newUser = new User({
-      username,
-      displayName: username,
-      id: Date.now().toString(),
-    });
-    await handlePostAuth(newUser);
+    setIsLoading(true);
+    try {
+      const newUser = new User({
+        username,
+        displayName: username,
+        id: Date.now().toString(),
+      });
+      await handlePostAuth(newUser);
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const signup = async (username: string, displayName: string) => {
-    const newUser = new User({
-      username,
-      displayName,
-      id: Date.now().toString(),
-    });
-    await handlePostAuth(newUser);
+    setIsLoading(true);
+    try {
+      const newUser = new User({
+        username,
+        displayName,
+        id: Date.now().toString(),
+      });
+      await handlePostAuth(newUser);
+    } catch (error) {
+      console.error('Signup error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = () => {
@@ -81,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         isAuthenticated,
         user,
+        isLoading,
         login,
         signup,
         logout,

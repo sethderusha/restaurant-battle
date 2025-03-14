@@ -81,16 +81,6 @@ class User {
     }
   }
 
-  // Static method for fallback location
-  static fallbackLocation() {
-    console.log("Using fallback location (NYC)");
-    return { 
-      latitude: 40.7128, 
-      longitude: -74.006,
-      isFallback: true 
-    };
-  }
-
   // Instance method to update location
   async updateLocation() {
     try {
@@ -100,7 +90,7 @@ class User {
       return this.location;
     } catch (error) {
       console.error("Failed to update location:", error);
-      throw error; // Propagate the error up
+      throw new Error('Location access is required to use this app. Please enable location services and try again.');
     }
   }
 

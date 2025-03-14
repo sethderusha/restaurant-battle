@@ -2,21 +2,34 @@ import React, { useState } from 'react';
 import { View, TextInput, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { LoadingOverlay } from '@/components/LoadingOverlay';
 
 export default function Signup() {
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [error, setError] = useState('');
   const router = useRouter();
-  const { signup } = useAuth();
+  const { signup, isLoading } = useAuth();
 
-  const handleSignup = () => {
-    if (username.trim() && displayName.trim()) {
-      signup(username.trim(), displayName.trim());
+  const handleSignup = async () => {
+    if (!username.trim() || !displayName.trim()) {
+      setError('Please fill in all fields');
+      return;
+    }
+    
+    setError('');
+    try {
+      await signup(username.trim(), displayName.trim());
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to create account');
     }
   };
 
   return (
     <View style={styles.container}>
+      {isLoading && (
+        <LoadingOverlay message="Setting up your account..." />
+      )}
       <Text style={styles.title}>Create Account</Text>
       <View style={styles.form}>
         <TextInput
@@ -25,22 +38,27 @@ export default function Signup() {
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
+          editable={!isLoading}
         />
         <TextInput
           style={styles.input}
           placeholder="Display Name"
           value={displayName}
           onChangeText={setDisplayName}
+          editable={!isLoading}
         />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <TouchableOpacity 
-          style={styles.button}
+          style={[styles.button, isLoading && styles.buttonDisabled]}
           onPress={handleSignup}
+          disabled={isLoading}
         >
           <Text style={styles.buttonText}>Sign Up</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           onPress={() => router.push('/login')}
           style={styles.linkButton}
+          disabled={isLoading}
         >
           <Text style={styles.linkText}>Already have an account? Login</Text>
         </TouchableOpacity>
@@ -54,7 +72,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#d2aeed',
   },
   title: {
     fontSize: 32,
@@ -82,6 +100,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 18,
@@ -94,5 +115,11 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#284B63',
     fontSize: 16,
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontSize: 14,
+    marginBottom: 15,
+    textAlign: 'center',
   },
 }); 

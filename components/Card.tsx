@@ -18,7 +18,7 @@ export function Card({ name, image }: CardProps) {
             </View>
             <View style={styles.imageContainer}>
                 <Image 
-                    source={image ? { uri: image } : require('@/assets/images/react-logo.png')}
+                    source={image ? { uri: image } : require('@/assets/images/food-fight-logo.png')}
                     style={styles.image}
                     resizeMode="cover"
                 />

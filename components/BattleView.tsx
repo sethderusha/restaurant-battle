@@ -28,7 +28,7 @@ export function BattleView({
   // Helper function to get photo URL consistently
   const getRestaurantPhotoUrl = (restaurant: Restaurant) => {
     const photoRef = restaurant.photos?.[0]?.photo_reference;
-    return photoRef ? getPhotoUrl(photoRef) : 'assets/images/react-logo.png';
+    return photoRef ? getPhotoUrl(photoRef) : require('@/assets/images/food-fight-logo.png');
   };
 
   const getNext = async (side: "left" | "right") => {
@@ -92,19 +92,28 @@ export function BattleView({
               await user.updateLocation();
               location = user.location;
             } catch (error) {
-              console.warn("Failed to get user location, using fallback");
-              location = User.fallbackLocation();
+              console.error("Failed to get user location:", error);
+              setError("Location access is required to use this app. Please enable location services and try again.");
+              setLoading(false);
+              return;
             }
           } else {
-            location = user.location || User.fallbackLocation();
+            if (!user.location) {
+              setError("Location access is required to use this app. Please enable location services and try again.");
+              setLoading(false);
+              return;
+            }
+            location = user.location;
           }
         } else {
-          // No user, just use fallback location
-          console.log("No user logged in, using default location (NYC)");
-          location = User.fallbackLocation();
+          // No user, show error
+          console.log("No user logged in");
+          setError("Please log in to use the app");
+          setLoading(false);
+          return;
         }
 
-        // Always proceed with a location (either real or fallback)
+        // Proceed with location
         await fetchWithLocation(location);
         
       } catch (error) {
@@ -209,6 +218,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: "10%",
+    backgroundColor: '#d2aeed',
   },
   cardsContainer: {
     flexDirection: "row",
@@ -217,7 +227,6 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   cardContainer: {
-    // Remove flex and maxWidth to prevent container from being larger than needed
   },
   errorText: {
     color: "red",

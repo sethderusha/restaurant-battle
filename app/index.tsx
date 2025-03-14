@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { CardProps } from "@/components/Card";
 import { BattleView } from "@/components/BattleView";
 import { useAuth } from "@/context/AuthContext";
@@ -20,8 +20,15 @@ export default function Index() {
   };
 
   return (
-    <View>
+    <View style={styles.container}>
       <BattleView left={leftCard} right={rightCard} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#d2aeed',
+  },
+});
