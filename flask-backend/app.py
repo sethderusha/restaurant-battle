@@ -43,7 +43,7 @@ def get_nearby_restaurants():
 
         restaurants_cache[session_id] = {
             "all": restaurants,
-            "index": 0
+            "index": 1
         }
 
         return jsonify({"restaurants": restaurants[:2]}), 200
