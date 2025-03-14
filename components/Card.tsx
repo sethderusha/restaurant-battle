@@ -29,10 +29,13 @@ export function Card({ name, image }: CardProps) {
 
 const styles = StyleSheet.create({
     card: {
+        borderWidth: 5,
+        borderColor: 'white',
         borderRadius: 20,
         width: 350,
         height: 500,
         backgroundColor: '#3C6E71',
+        boxShadow: '10px 10px rgba(0,0,0,0.25)'
     },
     titleContainer: {
         backgroundColor: '#284B63',
@@ -48,14 +51,18 @@ const styles = StyleSheet.create({
         fontSize: 24,
     },
     imageContainer: {
+        borderWidth: 5,
+        borderColor: 'white',
         width: 300,
         height: 250,
         marginLeft: 25,
-        borderRadius: 20,
+        borderRadius: 25,
         overflow: 'hidden',
         marginTop: 20,
     },
     image: {
+        borderColor: '#D2AEED',
+        borderWidth: 2,
         width: '100%',
         height: '100%',
         borderRadius: 20,
