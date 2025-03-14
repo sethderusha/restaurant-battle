@@ -86,11 +86,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 5,
+    fontFamily: 'SmileySans',
   },
   username: {
     fontSize: 16,
     color: '#FFFFFF',
     opacity: 0.8,
+    fontFamily: 'SmileySans',
   },
   section: {
     padding: 20,
@@ -102,6 +104,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#284B63',
     marginBottom: 15,
+    fontFamily: 'SmileySans',
   },
   preferencesList: {
     marginLeft: 10,
@@ -110,6 +113,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
     color: '#333333',
+    fontFamily: 'SmileySans',
   },
   cuisineTag: {
     fontSize: 14,
@@ -120,6 +124,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginBottom: 5,
     alignSelf: 'flex-start',
+    fontFamily: 'SmileySans',
   },
   battleItem: {
     backgroundColor: '#F5F5F5',
@@ -131,16 +136,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#3C6E71',
+    fontFamily: 'SmileySans',
   },
   battleLoser: {
     fontSize: 14,
     color: '#666666',
     marginTop: 5,
+    fontFamily: 'SmileySans',
   },
   battleDate: {
     fontSize: 12,
     color: '#999999',
     marginTop: 5,
+    fontFamily: 'SmileySans',
   },
   logoutButton: {
     margin: 20,
@@ -153,5 +161,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily: 'SmileySans',
   },
 }); 

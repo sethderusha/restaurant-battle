@@ -14,7 +14,7 @@ export function Card({ name, image }: CardProps) {
     return (
         <View style={styles.card}>
             <View style={styles.titleContainer}>
-                <Text style={styles.title}>{name}</Text>
+                <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.5}>{name}</Text>
             </View>
             <View style={styles.imageContainer}>
                 <Image 
@@ -41,14 +41,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#284B63',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        paddingTop: 25,
         height: 100,
+        justifyContent: 'center',
+        paddingHorizontal: 15,
+        paddingVertical: 10,
     },
     title: {
         color: '#FFFFFF',
-        fontFamily: 'System',
+        fontFamily: 'SmileySans',
         textAlign: 'center',
-        fontSize: 24,
+        fontSize: 36,
+        lineHeight: 40,
     },
     imageContainer: {
         borderWidth: 5,

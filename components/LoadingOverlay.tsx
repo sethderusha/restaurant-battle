@@ -41,5 +41,6 @@ const styles = StyleSheet.create({
     color: '#284B63',
     fontSize: 16,
     textAlign: 'center',
+    fontFamily: 'SmileySans',
   },
 }); 

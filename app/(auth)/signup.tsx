@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 40,
     color: '#284B63',
+    fontFamily: 'SmileySans',
   },
   form: {
     width: '100%',
@@ -92,6 +93,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
+    fontFamily: 'SmileySans',
   },
   button: {
     backgroundColor: '#3C6E71',
@@ -107,6 +109,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
+    fontFamily: 'SmileySans',
   },
   linkButton: {
     marginTop: 15,
@@ -115,11 +118,13 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#284B63',
     fontSize: 16,
+    fontFamily: 'SmileySans',
   },
   errorText: {
     color: '#D32F2F',
     fontSize: 14,
     marginBottom: 15,
     textAlign: 'center',
+    fontFamily: 'SmileySans',
   },
 }); 
