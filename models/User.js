@@ -8,6 +8,7 @@ class User {
     this.username = data.username || '';
     this.displayName = data.displayName || '';
     this.location = null;
+    this.hasInitializedLocation = false;
 
     // User preferences
     this.preferences = {
@@ -24,30 +25,43 @@ class User {
   static async requestLocationPermission() {
     try {
       console.log("📱 Requesting location permissions...");
-      const response = await Location.requestForegroundPermissionsAsync();
-      return response.status === 'granted';
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        throw new Error('Location permission is required to use this app. Please enable location access in your device settings.');
+      }
+      return true;
     } catch (error) {
       console.error("❌ Error requesting location permission:", error.message);
-      return false;
+      throw error; // Propagate the error up
     }
   }
 
   // Static method for getting location
   static async getLocation(retryCount = 0) {
     try {
-      console.log("🔍 Checking location permissions...");
-      const { status } = await Location.getForegroundPermissionsAsync();
+      // First check if we already have permissions
+      const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+      
+      // If we don't have permission, request it
+      if (existingStatus !== 'granted') {
+        await User.requestLocationPermission();
+      }
 
-      if (status !== 'granted') {
-        console.log("⚠️ Location permission not granted");
-        return User.fallbackLocation();
+      // Check if location services are enabled
+      const enabled = await Location.hasServicesEnabledAsync();
+      if (!enabled) {
+        throw new Error('Location services are disabled. Please enable them in your device settings to use this app.');
       }
 
       console.log("📡 Getting current location...");
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        timeout: 10000,
+        timeout: 15000,
       });
+
+      if (!position || !position.coords) {
+        throw new Error('Could not get location coordinates. Please ensure you have a clear view of the sky and try again.');
+      }
 
       console.log("✅ Location retrieved successfully");
       return {
@@ -57,33 +71,37 @@ class User {
     } catch (error) {
       console.error("❌ Error getting location:", error.message);
 
-      if (retryCount < 2) {
-        console.log(`🔄 Retrying... (Attempt ${retryCount + 1}/2)`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      if (retryCount < 3) {
+        console.log(`🔄 Retrying... (Attempt ${retryCount + 1}/3)`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
         return User.getLocation(retryCount + 1);
       }
 
-      console.error("❌ Failed to get location after multiple attempts");
-      return User.fallbackLocation();
+      throw error; // Let the calling code handle the error
     }
   }
 
   // Static method for fallback location
   static fallbackLocation() {
-    console.warn("⚠️ Using fallback location as last resort");
-    return { latitude: 40.7128, longitude: -74.006 }; // Default to NYC
+    console.log("Using fallback location (NYC)");
+    return { 
+      latitude: 40.7128, 
+      longitude: -74.006,
+      isFallback: true 
+    };
   }
 
   // Instance method to update location
   async updateLocation() {
-    // First ensure we have permission
-    const hasPermission = await User.requestLocationPermission();
-    if (hasPermission) {
+    try {
+      // Get location with retries
       this.location = await User.getLocation();
-    } else {
-      this.location = User.fallbackLocation();
+      this.hasInitializedLocation = true;
+      return this.location;
+    } catch (error) {
+      console.error("Failed to update location:", error);
+      throw error; // Propagate the error up
     }
-    return this.location;
   }
 
   // Battle history methods
@@ -135,6 +153,7 @@ class User {
       preferences: this.preferences,
       battleHistory: this.battleHistory,
       location: this.location,
+      hasInitializedLocation: this.hasInitializedLocation,
     };
   }
 
