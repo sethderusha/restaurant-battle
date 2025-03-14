@@ -51,6 +51,12 @@ class Restaurant {
 
     // Media
     this.photos = data.photos || [];
+    if (data.photo_reference) {
+      // Handle single photo reference format
+      this.photos = [{
+        photo_reference: data.photo_reference
+      }];
+    }
     this.iconMaskBaseUri = data.iconMaskBaseUri || "";
     this.iconBackgroundColor = data.iconBackgroundColor || "";
 
@@ -96,10 +102,8 @@ class Restaurant {
   // Get primary photo URL using the helper function
   getPrimaryPhotoUrl(maxWidth = 400) {
     if (this.photos && this.photos.length > 0) {
-      const photoReference =
-        this.photos[0].name || this.photos[0].photo_reference;
+      const photoReference = this.photos[0].photo_reference;
       if (photoReference) {
-        // Import at the top of your file or pass getPhotoUrl function
         const { getPhotoUrl } = require("../api/api");
         return getPhotoUrl(photoReference, maxWidth);
       }

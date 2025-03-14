@@ -25,13 +25,19 @@ export function BattleView({
   const [currentIndex, setCurrentIndex] = useState(2);
   const [sessionId] = useState(() => uuidv4());
 
+  // Helper function to get photo URL consistently
+  const getRestaurantPhotoUrl = (restaurant: Restaurant) => {
+    const photoRef = restaurant.photos?.[0]?.photo_reference;
+    return photoRef ? getPhotoUrl(photoRef) : 'assets/images/react-logo.png';
+  };
+
   const getNext = async (side: "left" | "right") => {
     try {
       if (currentIndex < restaurants.length) {
         const nextRestaurant = restaurants[currentIndex];
         const nextCard: CardProps = {
           name: nextRestaurant.name,
-          image: getPhotoUrl(nextRestaurant.photos?.[0]?.photo_reference) || 'assets/images/react-logo.png'
+          image: getRestaurantPhotoUrl(nextRestaurant)
         };
 
         if (side === 'left') {
@@ -44,20 +50,17 @@ export function BattleView({
       } else {
         console.log("Getting next restaurant with session:", sessionId);
         const nextRestaurant = await getNextRestaurant(sessionId);
-        let nextRestaurantObject = new Restaurant(nextRestaurant.restaurant);
-        let imageUrl = nextRestaurantObject.getPrimaryPhotoUrl();
-        if (imageUrl === null) {
-          imageUrl = 'assets/images/react-logo.png';
-        }
-        let nextRestaurantProps: CardProps = {
+        const nextRestaurantObject = new Restaurant(nextRestaurant.restaurant);
+        
+        const nextCard: CardProps = {
           name: nextRestaurantObject.name,
-          image: imageUrl
+          image: getRestaurantPhotoUrl(nextRestaurantObject)
         };
 
         if (side === 'left') {
-          setRightCard(nextRestaurantProps);
+          setRightCard(nextCard);
         } else {
-          setLeftCard(nextRestaurantProps);
+          setLeftCard(nextCard);
         }
       }
     } catch (error) {
@@ -137,7 +140,7 @@ export function BattleView({
 
         // Store all restaurants in state
         const restaurantObjects = result.restaurants.map(
-          (restaurantData: any) => new Restaurant(restaurantData),
+          (restaurantData: any) => new Restaurant(restaurantData)
         );
         setRestaurants(restaurantObjects);
 
@@ -147,12 +150,12 @@ export function BattleView({
 
         setLeftCard({
           name: firstRestaurant.name,
-          image: getPhotoUrl(firstRestaurant.photos?.[0]?.photo_reference) || 'assets/images/react-logo.png'
+          image: getRestaurantPhotoUrl(firstRestaurant)
         });
 
         setRightCard({
           name: secondRestaurant.name,
-          image: getPhotoUrl(secondRestaurant.photos?.[0]?.photo_reference) || 'assets/images/react-logo.png'
+          image: getRestaurantPhotoUrl(secondRestaurant)
         });
 
         setCurrentIndex(2); // Start at index 2 since we've used the first two
