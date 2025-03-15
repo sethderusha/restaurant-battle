@@ -4,6 +4,8 @@ import os
 import random
 from flask_cors import CORS
 from dotenv import load_dotenv
+import time
+import threading
 
 # Load environment variables
 load_dotenv()
@@ -19,6 +21,21 @@ GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 restaurants_cache = {
     # Format: {session_id: {"all": [list_of_restaurants], "index": current_index}}
 }
+
+def fetch_next_page_async(session_id, next_page_token):
+    """Asynchronously fetch the next page of restaurants"""
+    try:
+        new_restaurants, new_token = fetch_next_page_restaurants(next_page_token)
+        if new_restaurants and session_id in restaurants_cache:
+            session_data = restaurants_cache[session_id]
+            session_data["all"].extend(new_restaurants)
+            session_data["next_page_token"] = new_token
+            session_data["last_fetch_size"] = len(new_restaurants)
+            session_data["is_fetching"] = False
+    except Exception as e:
+        print(f"Failed to fetch next page: {str(e)}")
+        if session_id in restaurants_cache:
+            restaurants_cache[session_id]["is_fetching"] = False
 
 @app.route('/api/nearby-restaurants', methods=['GET'])
 def get_nearby_restaurants():
@@ -37,13 +54,16 @@ def get_nearby_restaurants():
         return jsonify({"restaurants": restaurants[index:index+2]}), 200
 
     try:
-        restaurants = fetch_restaurants_from_google(latitude, longitude, radius)
+        restaurants, next_page_token = fetch_restaurants_from_google(latitude, longitude, radius)
         if not restaurants:
             return jsonify({"error": "No restaurants found nearby"}), 404
 
         restaurants_cache[session_id] = {
             "all": restaurants,
-            "index": 1
+            "index": 1,
+            "next_page_token": next_page_token,
+            "last_fetch_size": len(restaurants),
+            "is_fetching": False
         }
 
         return jsonify({"restaurants": restaurants[:2]}), 200
@@ -65,6 +85,25 @@ def get_next_restaurant():
     session_data = restaurants_cache[session_id]
     all_restaurants = session_data["all"]
     index = session_data["index"]
+    next_page_token = session_data.get("next_page_token")
+    last_fetch_size = session_data.get("last_fetch_size", 20)
+    is_fetching = session_data.get("is_fetching", False)
+
+    # Calculate how many restaurants we've viewed in the current batch
+    restaurants_viewed_in_batch = (index + 1) % last_fetch_size
+
+    # If we're 5 restaurants away from the end of current batch and have a next page token
+    # and we're not already fetching
+    if (restaurants_viewed_in_batch >= (last_fetch_size - 5) and 
+        next_page_token and 
+        not is_fetching):
+        # Start fetching next page in background
+        session_data["is_fetching"] = True
+        thread = threading.Thread(
+            target=fetch_next_page_async,
+            args=(session_id, next_page_token)
+        )
+        thread.start()
 
     # Move to the next restaurant, stopping at the end
     next_index = min(index + 1, len(all_restaurants) - 1)
@@ -91,7 +130,8 @@ def reset_session():
 def fetch_restaurants_from_google(latitude, longitude, radius):
     """Fetch restaurants from Google Places API"""
     url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-
+    
+    # Initial request parameters
     params = {
         "location": f"{latitude},{longitude}",
         "radius": radius,
@@ -124,12 +164,54 @@ def fetch_restaurants_from_google(latitude, longitude, radius):
         }
         restaurants.append(restaurant)
 
-    # Handle pagination if there are more results
-    if "next_page_token" in data:
-        # In a real app, you might want to fetch more pages
-        pass
+    return restaurants, data.get("next_page_token")
 
-    return restaurants
+def fetch_next_page_restaurants(next_page_token):
+    """Fetch the next page of restaurants using the page token"""
+    url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+    
+    # Wait for token to become valid
+    time.sleep(2)
+    
+    params = {
+        "key": GOOGLE_API_KEY,
+        "pagetoken": next_page_token
+    }
+
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    if data["status"] != "OK":
+        if data["status"] == "INVALID_REQUEST":
+            # Token might not be ready yet, wait longer and try one more time
+            time.sleep(3)
+            response = requests.get(url, params=params)
+            data = response.json()
+            if data["status"] != "OK":
+                return [], None
+        else:
+            return [], None
+
+    # Extract relevant information from each restaurant
+    restaurants = []
+    for place in data["results"]:
+        restaurant = {
+            "place_id": place["place_id"],
+            "name": place["name"],
+            "vicinity": place.get("vicinity", ""),
+            "rating": place.get("rating", 0),
+            "user_ratings_total": place.get("user_ratings_total", 0),
+            "price_level": place.get("price_level", 0),
+            "photo_reference": place.get("photos", [{}])[0].get("photo_reference", "") if place.get("photos") else "",
+            "location": {
+                "lat": place["geometry"]["location"]["lat"],
+                "lng": place["geometry"]["location"]["lng"]
+            },
+            "open_now": place.get("opening_hours", {}).get("open_now", None)
+        }
+        restaurants.append(restaurant)
+
+    return restaurants, data.get("next_page_token")
 
 @app.route('/api/photo', methods=['GET'])
 def get_photo():
