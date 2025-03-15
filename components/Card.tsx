@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 // import './Card.css';
 //Card components:
     //Name
@@ -8,14 +8,20 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 export type CardProps = {
     name: string;
     image: string | null;
+    place_id: string;
 }
 
-export function Card({ name, image }: CardProps) {
+export function Card({ name, image, place_id }: CardProps) {
+    const handleTitlePress = () => {
+        const url = `https://www.google.com/maps/place/?q=place_id:${place_id}`;
+        Linking.openURL(url).catch((err) => console.error('Error opening Maps:', err));
+    };
+
     return (
         <View style={styles.card}>
-            <View style={styles.titleContainer}>
+            <TouchableOpacity onPress={handleTitlePress} style={styles.titleContainer}>
                 <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.5}>{name}</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.imageContainer}>
                 <Image 
                     source={image ? { uri: image } : require('@/assets/images/food-fight-logo.png')}

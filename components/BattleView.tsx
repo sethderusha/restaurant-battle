@@ -37,7 +37,8 @@ export function BattleView({
         const nextRestaurant = restaurants[currentIndex];
         const nextCard: CardProps = {
           name: nextRestaurant.name,
-          image: getRestaurantPhotoUrl(nextRestaurant)
+          image: getRestaurantPhotoUrl(nextRestaurant),
+          place_id: nextRestaurant.id
         };
 
         if (side === 'left') {
@@ -54,7 +55,8 @@ export function BattleView({
         
         const nextCard: CardProps = {
           name: nextRestaurantObject.name,
-          image: getRestaurantPhotoUrl(nextRestaurantObject)
+          image: getRestaurantPhotoUrl(nextRestaurantObject),
+          place_id: nextRestaurantObject.id
         };
 
         if (side === 'left') {
@@ -159,12 +161,14 @@ export function BattleView({
 
         setLeftCard({
           name: firstRestaurant.name,
-          image: getRestaurantPhotoUrl(firstRestaurant)
+          image: getRestaurantPhotoUrl(firstRestaurant),
+          place_id: firstRestaurant.id
         });
 
         setRightCard({
           name: secondRestaurant.name,
-          image: getRestaurantPhotoUrl(secondRestaurant)
+          image: getRestaurantPhotoUrl(secondRestaurant),
+          place_id: secondRestaurant.id
         });
 
         setCurrentIndex(2); // Start at index 2 since we've used the first two
@@ -197,14 +201,14 @@ export function BattleView({
             style={styles.cardContainer}
             activeOpacity={0.7}
           >
-            <Card name={leftCard.name} image={leftCard.image} />
+            <Card name={leftCard.name} image={leftCard.image} place_id={leftCard.place_id} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleCardClick("right")}
             style={styles.cardContainer}
             activeOpacity={0.7}
           >
-            <Card name={rightCard.name} image={rightCard.image} />
+            <Card name={rightCard.name} image={rightCard.image} place_id={rightCard.place_id} />
           </TouchableOpacity>
         </View>
       )}
