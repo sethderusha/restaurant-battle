@@ -218,15 +218,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: "10%",
+    marginBottom: 80,
     backgroundColor: '#d2aeed',
+    paddingHorizontal: 20,
   },
   cardsContainer: {
     flexDirection: "row",
-    justifyContent: "space-evenly",
+    justifyContent: "center",
     alignItems: "center",
     width: "100%",
+    gap: 150,
   },
   cardContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorText: {
     color: "red",

@@ -10,7 +10,8 @@ type AuthContextType = {
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   signup: (username: string, password: string, displayName: string) => Promise<void>;
-  logout: () => void;
+  signOut: () => Promise<void>;
+  updateUserProfile: (updates: { displayName?: string; password?: string }) => Promise<void>;
 };
 
 // Create the context
@@ -115,14 +116,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = async () => {
+  const updateUserProfile = async (updates: { displayName?: string; password?: string }) => {
+    if (!user) throw new Error('No user logged in');
+    
+    try {
+      setIsLoading(true);
+      if (updates.displayName) {
+        user.displayName = updates.displayName;
+      }
+      if (updates.password) {
+        // Here you would typically call an API to update the password
+        // For now, we'll just update it locally
+        console.log('Password update requested');
+      }
+      await AsyncStorage.setItem('user', JSON.stringify(user.toJSON()));
+      // Create a new User instance with the updated data
+      const updatedUser = User.fromJSON(user.toJSON());
+      setUser(updatedUser);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async () => {
     try {
       await AsyncStorage.removeItem('user');
       setUser(null);
       setIsAuthenticated(false);
       router.replace('/login');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Sign out error:', error);
     }
   };
 
@@ -134,7 +160,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         signup,
-        logout,
+        signOut,
+        updateUserProfile,
       }}
     >
       {children}
