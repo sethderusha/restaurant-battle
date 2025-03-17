@@ -11,7 +11,12 @@ type AuthContextType = {
   login: (username: string, password: string) => Promise<void>;
   signup: (username: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updateUserProfile: (updates: { displayName?: string; password?: string }) => Promise<void>;
+  updateUserProfile: (updates: { 
+    displayName?: string; 
+    password?: string; 
+    currentPassword?: string;
+    profilePicture?: string; 
+  }) => Promise<void>;
 };
 
 // Create the context
@@ -116,22 +121,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateUserProfile = async (updates: { displayName?: string; password?: string }) => {
+  const updateUserProfile = async (updates: { 
+    displayName?: string; 
+    password?: string; 
+    currentPassword?: string;
+    profilePicture?: string; 
+  }) => {
     if (!user) throw new Error('No user logged in');
     
     try {
       setIsLoading(true);
-      if (updates.displayName) {
-        user.displayName = updates.displayName;
-      }
-      if (updates.password) {
-        // Here you would typically call an API to update the password
-        // For now, we'll just update it locally
-        console.log('Password update requested');
-      }
-      await AsyncStorage.setItem('user', JSON.stringify(user.toJSON()));
+      const response = await user.updateProfile(updates);
+      
       // Create a new User instance with the updated data
-      const updatedUser = User.fromJSON(user.toJSON());
+      const updatedUser = User.fromJSON({
+        ...user.toJSON(),
+        displayName: response.displayName || user.displayName,
+        profilePicture: response.profilePicture || user.profilePicture,
+      });
+      
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser.toJSON()));
       setUser(updatedUser);
     } catch (error) {
       console.error('Error updating profile:', error);

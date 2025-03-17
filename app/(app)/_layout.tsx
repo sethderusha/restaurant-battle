@@ -25,7 +25,29 @@ export default function AppLayout() {
           fontFamily: 'SmileySans',
         },
         tabBarActiveTintColor: '#d2aeed',
-        tabBarInactiveTintColor: '#284B63',
+        tabBarInactiveTintColor: '#ffffff',
+        tabBarStyle: {
+          backgroundColor: '#284B63',
+          borderTopWidth: 0,
+          elevation: 0,
+          height: 60,
+          paddingBottom: 8,
+        },
+        tabBarLabelStyle: {
+          fontFamily: 'SmileySans',
+          fontSize: 12,
+          marginTop: 4,
+        },
+        tabBarItemStyle: {
+          flex: 1,
+          padding: 8,
+          borderRadius: 0,
+        },
+        tabBarIconStyle: {
+          marginBottom: 4,
+        },
+        tabBarActiveBackgroundColor: 'rgba(210, 174, 237, 0.2)',
+        tabBarInactiveBackgroundColor: 'transparent',
       }}
     >
       <Tabs.Screen

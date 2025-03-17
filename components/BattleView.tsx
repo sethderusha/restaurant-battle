@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import Restaurant from "@/models/Restaurant";
 import User from "@/models/User";
 import { useAuth } from "@/context/AuthContext";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
 
 export type BattleViewProps = {
   left: CardProps;
@@ -179,11 +180,7 @@ export function BattleView({
   }, [user]);
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <Text>Loading nearby restaurants...</Text>
-      </View>
-    );
+    return <LoadingOverlay message="Loading nearby restaurants..." />;
   }
 
   return (

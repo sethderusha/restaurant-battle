@@ -114,11 +114,67 @@ def login():
 @token_required
 def handle_user_settings(current_user):
     if request.method == 'GET':
-        return jsonify({'settings': current_user['app_settings']}), 200
+        settings = current_user['app_settings'] or {}
+        return jsonify({
+            'settings': settings,
+            'profilePicture': settings.get('profilePicture', 'default'),
+            'displayName': current_user['display_name'],
+            'username': current_user['username']
+        }), 200
     
     data = request.json
-    if update_user_settings(current_user['id'], data):
-        return jsonify({'message': 'Settings updated successfully'}), 200
+    current_settings = current_user['app_settings'] or {}
+    
+    # Handle profile picture update
+    if 'profilePicture' in data:
+        current_settings['profilePicture'] = data['profilePicture']
+    
+    # Handle display name update
+    if 'displayName' in data:
+        conn = create_connection()
+        if conn is not None:
+            try:
+                c = conn.cursor()
+                c.execute('''
+                    UPDATE users 
+                    SET display_name = ?
+                    WHERE id = ?
+                ''', (data['displayName'], current_user['id']))
+                conn.commit()
+            except Error as e:
+                print(f"Error updating display name: {e}")
+                return jsonify({'error': 'Could not update display name'}), 500
+            finally:
+                conn.close()
+    
+    # Handle password update
+    if 'password' in data and 'currentPassword' in data:
+        if not check_password_hash(current_user['password_hash'], data['currentPassword']):
+            return jsonify({'error': 'Current password is incorrect'}), 401
+        
+        new_password_hash = generate_password_hash(data['password'])
+        conn = create_connection()
+        if conn is not None:
+            try:
+                c = conn.cursor()
+                c.execute('''
+                    UPDATE users 
+                    SET password_hash = ?
+                    WHERE id = ?
+                ''', (new_password_hash, current_user['id']))
+                conn.commit()
+            except Error as e:
+                print(f"Error updating password: {e}")
+                return jsonify({'error': 'Could not update password'}), 500
+            finally:
+                conn.close()
+    
+    if update_user_settings(current_user['id'], current_settings):
+        return jsonify({
+            'message': 'Settings updated successfully',
+            'profilePicture': current_settings.get('profilePicture', 'default'),
+            'displayName': data.get('displayName', current_user['display_name'])
+        }), 200
     return jsonify({'error': 'Could not update settings'}), 500
 
 @app.route('/api/favorites', methods=['GET', 'POST', 'DELETE'])

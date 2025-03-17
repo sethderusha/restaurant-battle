@@ -10,6 +10,7 @@ class User {
     this.token = data.token || null;
     this.location = null;
     this.hasInitializedLocation = false;
+    this.profilePicture = data.profilePicture || 'default';
 
     // User preferences and settings
     this.settings = {
@@ -98,7 +99,7 @@ class User {
   // Authentication methods
   static async login(username, password) {
     try {
-      const response = await fetch('http://localhost:5001/api/auth/login', {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,15 +108,16 @@ class User {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Login failed');
+        throw new Error('Login failed');
       }
 
       const data = await response.json();
       return new User({
+        id: data.id,
         username: data.username,
         displayName: data.displayName,
-        token: data.token,
+        profilePicture: data.profilePicture,
+        settings: data.settings
       });
     } catch (error) {
       console.error('Login error:', error);
@@ -125,7 +127,7 @@ class User {
 
   static async signup(username, password, displayName) {
     try {
-      const response = await fetch('http://localhost:5001/api/auth/signup', {
+      const response = await fetch('http://localhost:5000/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,15 +136,16 @@ class User {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Signup failed');
+        throw new Error('Signup failed');
       }
 
       const data = await response.json();
       return new User({
+        id: data.id,
         username: data.username,
         displayName: data.displayName,
-        token: data.token,
+        profilePicture: data.profilePicture,
+        settings: data.settings
       });
     } catch (error) {
       console.error('Signup error:', error);
@@ -243,13 +246,43 @@ class User {
     }
   }
 
+  async updateProfile(updates) {
+    try {
+      const response = await fetch('http://localhost:5000/api/user/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await this.getToken()}`,
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update profile');
+      }
+
+      const data = await response.json();
+      if (updates.profilePicture) {
+        this.profilePicture = updates.profilePicture;
+      }
+      if (updates.displayName) {
+        this.displayName = updates.displayName;
+      }
+      return data;
+    } catch (error) {
+      console.error('Profile update error:', error);
+      throw error;
+    }
+  }
+
   // Convert to plain object for storage
   toJSON() {
     return {
       id: this.id,
       username: this.username,
       displayName: this.displayName,
-      token: this.token,
+      profilePicture: this.profilePicture,
       settings: this.settings,
       favorites: this.favorites,
       location: this.location,
