@@ -2,6 +2,7 @@ const { exec } = require("child_process");
 const fs = require("fs");
 const readline = require("readline");
 const path = require("path");
+const crypto = require("crypto");
 
 // Function to run shell commands
 function runCommand(command, cwd) {
@@ -29,6 +30,11 @@ function askQuestion(query) {
       resolve(ans);
     }),
   );
+}
+
+// Function to generate a secure random string
+function generateSecureKey(length = 64) {
+  return crypto.randomBytes(length).toString('hex');
 }
 
 // Function to check if a virtual environment exists
@@ -60,15 +66,24 @@ async function setupProject() {
 
     await runCommand(pipCommand, flaskBackendPath);
 
+    // Get Google API Key from user
     const googleApiKey = await askQuestion("Enter your Google API Key: ");
 
+    // Generate a secure secret key for JWT
+    console.log("\nGenerating a secure secret key for JWT authentication...");
+    const secretKey = generateSecureKey();
+    console.log("Secret key generated successfully!");
+
+    // Save both keys to .env
     const envFilePath = path.join(flaskBackendPath, ".env");
-    const envContent = `GOOGLE_API_KEY=${googleApiKey}\n`;
+    const envContent = `GOOGLE_API_KEY=${googleApiKey}\nSECRET_KEY=${secretKey}\n`;
 
-    fs.writeFileSync(envFilePath, envContent, { flag: "a" });
-    console.log("Google API Key has been saved to flask-backend/.env");
+    // Write the .env file (overwrite if exists)
+    fs.writeFileSync(envFilePath, envContent);
+    console.log("Environment variables have been saved to flask-backend/.env");
 
-    console.log("Setup completed successfully!");
+    console.log("\nSetup completed successfully!");
+    console.log("Note: Keep your .env file secure and never commit it to version control.");
   } catch (error) {
     console.error("Setup failed:", error);
   }

@@ -1,14 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, useSegments } from 'expo-router';
 import User from '@/models/User';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define the shape of our context
 type AuthContextType = {
   isAuthenticated: boolean;
   user: User | null;
   isLoading: boolean;
-  login: (username: string) => Promise<void>;
-  signup: (username: string, displayName: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
+  signup: (username: string, password: string, displayName: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -28,12 +29,19 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const segments = useSegments();
   const router = useRouter();
 
+  // Load saved user data on startup
+  useEffect(() => {
+    loadSavedUser();
+  }, []);
+
   // Handle routing based on auth state
   useEffect(() => {
+    if (isLoading) return;
+
     const inAuthGroup = segments[0] === '(auth)';
     const isAuthRoute = ['login', 'signup'].includes(segments[segments.length - 1] || '');
 
@@ -44,7 +52,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Redirect to home if authenticated and on an auth route
       router.replace('/');
     }
-  }, [isAuthenticated, segments]);
+  }, [isAuthenticated, segments, isLoading]);
+
+  const loadSavedUser = async () => {
+    try {
+      const savedUserData = await AsyncStorage.getItem('user');
+      if (savedUserData) {
+        const userData = JSON.parse(savedUserData);
+        const user = User.fromJSON(userData);
+        setUser(user);
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      console.error('Error loading saved user:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handlePostAuth = async (newUser: User) => {
     try {
@@ -52,6 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await User.requestLocationPermission();
       // Update user's location
       await newUser.updateLocation();
+      // Save user data
+      await AsyncStorage.setItem('user', JSON.stringify(newUser.toJSON()));
       setUser(newUser);
       setIsAuthenticated(true);
     } catch (error) {
@@ -63,14 +89,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (username: string) => {
+  const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const newUser = new User({
-        username,
-        displayName: username,
-        id: Date.now().toString(),
-      });
+      const newUser = await User.login(username, password);
       await handlePostAuth(newUser);
     } catch (error) {
       console.error('Login error:', error);
@@ -80,14 +102,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signup = async (username: string, displayName: string) => {
+  const signup = async (username: string, password: string, displayName: string) => {
     setIsLoading(true);
     try {
-      const newUser = new User({
-        username,
-        displayName,
-        id: Date.now().toString(),
-      });
+      const newUser = await User.signup(username, password, displayName);
       await handlePostAuth(newUser);
     } catch (error) {
       console.error('Signup error:', error);
@@ -97,9 +115,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem('user');
+      setUser(null);
+      setIsAuthenticated(false);
+      router.replace('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (

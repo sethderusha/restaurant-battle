@@ -132,14 +132,11 @@ export function BattleView({
 
     const fetchWithLocation = async (location: { latitude: number; longitude: number }) => {
       try {
-        console.log("Fetching restaurants for location:", location);
         const result = await getNearbyRestaurants(
           sessionId,
           location.latitude,
           location.longitude,
         );
-
-        console.log("API response:", result);
 
         if (!result?.restaurants?.length) {
           throw new Error("No restaurants found in this area");
@@ -172,7 +169,6 @@ export function BattleView({
         });
 
         setCurrentIndex(2); // Start at index 2 since we've used the first two
-        console.log("Cards updated with restaurant data");
       } catch (error) {
         console.error("Error fetching restaurants:", error);
         setError(error instanceof Error ? error.message : "Failed to load restaurants");

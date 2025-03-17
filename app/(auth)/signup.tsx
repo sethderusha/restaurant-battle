@@ -6,20 +6,26 @@ import { LoadingOverlay } from '@/components/LoadingOverlay';
 
 export default function Signup() {
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
   const { signup, isLoading } = useAuth();
 
   const handleSignup = async () => {
-    if (!username.trim() || !displayName.trim()) {
+    if (!username.trim() || !password.trim() || !displayName.trim()) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
       return;
     }
     
     setError('');
     try {
-      await signup(username.trim(), displayName.trim());
+      await signup(username.trim(), password.trim(), displayName.trim());
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to create account');
     }
@@ -38,6 +44,17 @@ export default function Signup() {
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
+          autoCorrect={false}
+          editable={!isLoading}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
           editable={!isLoading}
         />
         <TextInput

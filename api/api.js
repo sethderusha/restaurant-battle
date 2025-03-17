@@ -1,9 +1,19 @@
 // api/api.js
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Replace with your Flask server URL
-// Use IP address instead of localhost for device testing
-const API_BASE_URL = "http://localhost:5001"; // Change this to your computer's IP address
+// Base URL configuration
+const getBaseUrl = () => {
+  if (__DEV__) {
+    // Development - use local server
+    // Note: Use your computer's IP address when testing on physical device
+    return "http://localhost:5001";
+  }
+  // Production URL
+  return "https://your-production-url.com"; // TODO: Change this to your production URL
+};
+
+const API_BASE_URL = getBaseUrl();
 
 // Create axios instance
 const apiClient = axios.create({
@@ -14,7 +24,112 @@ const apiClient = axios.create({
   },
 });
 
-// API functions that match your Flask endpoints
+// Add a request interceptor to add the auth token to requests
+apiClient.interceptors.request.use(
+  async (config) => {
+    try {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        const { token } = JSON.parse(userData);
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      }
+    } catch (error) {
+      console.error('Error adding auth token to request:', error);
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Authentication endpoints
+export const login = async (username, password) => {
+  try {
+    const response = await apiClient.post("/api/auth/login", {
+      username,
+      password,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw error;
+  }
+};
+
+export const signup = async (username, password, displayName) => {
+  try {
+    const response = await apiClient.post("/api/auth/signup", {
+      username,
+      password,
+      displayName,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw error;
+  }
+};
+
+// User settings endpoints
+export const getUserSettings = async () => {
+  try {
+    const response = await apiClient.get("/api/user/settings");
+    return response.data.settings;
+  } catch (error) {
+    console.error("Error fetching user settings:", error);
+    throw error;
+  }
+};
+
+export const updateUserSettings = async (settings) => {
+  try {
+    const response = await apiClient.put("/api/user/settings", settings);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating user settings:", error);
+    throw error;
+  }
+};
+
+// Favorites endpoints
+export const getFavorites = async () => {
+  try {
+    const response = await apiClient.get("/api/favorites");
+    return response.data.favorites;
+  } catch (error) {
+    console.error("Error fetching favorites:", error);
+    throw error;
+  }
+};
+
+export const addFavorite = async (restaurant) => {
+  try {
+    const response = await apiClient.post("/api/favorites", restaurant);
+    return response.data;
+  } catch (error) {
+    console.error("Error adding favorite:", error);
+    throw error;
+  }
+};
+
+export const removeFavorite = async (placeId) => {
+  try {
+    const response = await apiClient.delete(`/api/favorites?place_id=${placeId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error removing favorite:", error);
+    throw error;
+  }
+};
+
+// Restaurant endpoints
 export const getNearbyRestaurants = async (
   sessionId,
   latitude,

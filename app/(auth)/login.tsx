@@ -6,34 +6,38 @@ import { LoadingOverlay } from '@/components/LoadingOverlay';
 
 export default function Login() {
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
   const { login, isLoading } = useAuth();
 
   const handleLogin = async () => {
-    if (!username.trim()) {
-      setError('Please enter a username');
+    if (!username.trim() || !password.trim()) {
+      setError('Please fill in all fields');
       return;
     }
     
     setError('');
     try {
-      await login(username.trim());
+      await login(username.trim(), password.trim());
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to login');
+      setError(error instanceof Error ? error.message : 'Invalid username or password');
     }
   };
 
   return (
     <View style={styles.container}>
       {isLoading && (
-        <LoadingOverlay message="Setting up your account..." />
+        <LoadingOverlay message="Logging in..." />
       )}
-      <Image 
-        source={require('@/assets/images/food-fight-logo.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
+      <View style={styles.logoContainer}>
+        <Image 
+          source={require('@/assets/images/food-fight-logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
+      <Text style={styles.title}>Welcome Back</Text>
       <View style={styles.form}>
         <TextInput
           style={styles.input}
@@ -41,6 +45,17 @@ export default function Login() {
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
+          autoCorrect={false}
+          editable={!isLoading}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
           editable={!isLoading}
         />
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -70,11 +85,21 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#d2aeed',
   },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   logo: {
-    width: '100%',
     height: 360,
+    width: '100%',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 40,
-    alignSelf: 'center',
+    color: '#284B63',
+    fontFamily: 'SmileySans',
   },
   form: {
     width: '100%',

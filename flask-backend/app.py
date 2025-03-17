@@ -6,6 +6,18 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import time
 import threading
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+import jwt
+from datetime import datetime, timedelta
+from database import (
+    add_user,
+    get_user,
+    update_user_settings,
+    add_favorite,
+    remove_favorite,
+    get_user_favorites
+)
 
 # Load environment variables
 load_dotenv()
@@ -13,7 +25,8 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Get Google API key from environment variables
+# Configuration
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key')  # Change in production
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 
 # In-memory storage for restaurants
@@ -21,6 +34,114 @@ GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 restaurants_cache = {
     # Format: {session_id: {"all": [list_of_restaurants], "index": current_index}}
 }
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split(" ")[1]
+        
+        if not token:
+            return jsonify({'error': 'Token is missing'}), 401
+        
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            current_user = get_user(data['username'])
+            if not current_user:
+                return jsonify({'error': 'User not found'}), 401
+        except:
+            return jsonify({'error': 'Token is invalid'}), 401
+        
+        return f(current_user, *args, **kwargs)
+    return decorated
+
+@app.route('/api/auth/signup', methods=['POST'])
+def signup():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    display_name = data.get('displayName', username)
+    
+    if not username or not password:
+        return jsonify({'error': 'Missing username or password'}), 400
+    
+    if get_user(username):
+        return jsonify({'error': 'Username already exists'}), 409
+    
+    password_hash = generate_password_hash(password)
+    user_id = add_user(username, password_hash, display_name)
+    
+    if user_id:
+        token = jwt.encode({
+            'username': username,
+            'exp': datetime.utcnow() + timedelta(days=7)
+        }, app.config['SECRET_KEY'])
+        
+        return jsonify({
+            'token': token,
+            'username': username,
+            'displayName': display_name
+        }), 201
+    
+    return jsonify({'error': 'Could not create user'}), 500
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'error': 'Missing username or password'}), 400
+    
+    user = get_user(username)
+    if not user or not check_password_hash(user['password_hash'], password):
+        return jsonify({'error': 'Invalid username or password'}), 401
+    
+    token = jwt.encode({
+        'username': username,
+        'exp': datetime.utcnow() + timedelta(days=7)
+    }, app.config['SECRET_KEY'])
+    
+    return jsonify({
+        'token': token,
+        'username': username,
+        'displayName': user['display_name']
+    }), 200
+
+@app.route('/api/user/settings', methods=['GET', 'PUT'])
+@token_required
+def handle_user_settings(current_user):
+    if request.method == 'GET':
+        return jsonify({'settings': current_user['app_settings']}), 200
+    
+    data = request.json
+    if update_user_settings(current_user['id'], data):
+        return jsonify({'message': 'Settings updated successfully'}), 200
+    return jsonify({'error': 'Could not update settings'}), 500
+
+@app.route('/api/favorites', methods=['GET', 'POST', 'DELETE'])
+@token_required
+def handle_favorites(current_user):
+    if request.method == 'GET':
+        favorites = get_user_favorites(current_user['id'])
+        return jsonify({'favorites': favorites}), 200
+    
+    elif request.method == 'POST':
+        data = request.json
+        if add_favorite(current_user['id'], data):
+            return jsonify({'message': 'Restaurant added to favorites'}), 201
+        return jsonify({'error': 'Could not add to favorites'}), 500
+    
+    elif request.method == 'DELETE':
+        place_id = request.args.get('place_id')
+        if not place_id:
+            return jsonify({'error': 'Missing place_id'}), 400
+        
+        if remove_favorite(current_user['id'], place_id):
+            return jsonify({'message': 'Restaurant removed from favorites'}), 200
+        return jsonify({'error': 'Could not remove from favorites'}), 500
 
 def fetch_next_page_async(session_id, next_page_token):
     """Asynchronously fetch the next page of restaurants"""

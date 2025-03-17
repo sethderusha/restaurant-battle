@@ -2,23 +2,25 @@ import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 class User {
-  constructor(data = {}) {
+  constructor(data) {
     // Basic user info
     this.id = data.id || '';
     this.username = data.username || '';
     this.displayName = data.displayName || '';
+    this.token = data.token || null;
     this.location = null;
     this.hasInitializedLocation = false;
 
-    // User preferences
-    this.preferences = {
-      cuisinePreferences: data.preferences?.cuisinePreferences || [],
-      priceRange: data.preferences?.priceRange || [1, 4], // Default: all price ranges
-      radius: data.preferences?.radius || 1000, // Default: 1km
+    // User preferences and settings
+    this.settings = {
+      cuisinePreferences: data.settings?.cuisinePreferences || [],
+      priceRange: data.settings?.priceRange || [1, 4], // Default: all price ranges
+      radius: data.settings?.radius || 1000, // Default: 1km
+      ...data.settings
     };
 
-    // Battle history
-    this.battleHistory = data.battleHistory || [];
+    // Favorites
+    this.favorites = data.favorites || [];
   }
 
   // Static method to request location permissions
@@ -32,7 +34,7 @@ class User {
       return true;
     } catch (error) {
       console.error("❌ Error requesting location permission:", error.message);
-      throw error; // Propagate the error up
+      throw error;
     }
   }
 
@@ -77,14 +79,13 @@ class User {
         return User.getLocation(retryCount + 1);
       }
 
-      throw error; // Let the calling code handle the error
+      throw error;
     }
   }
 
   // Instance method to update location
   async updateLocation() {
     try {
-      // Get location with retries
       this.location = await User.getLocation();
       this.hasInitializedLocation = true;
       return this.location;
@@ -94,44 +95,152 @@ class User {
     }
   }
 
-  // Battle history methods
-  addBattleResult(winner, loser) {
-    this.battleHistory.push({
-      winner,
-      loser,
-      timestamp: Date.now()
-    });
-  }
+  // Authentication methods
+  static async login(username, password) {
+    try {
+      const response = await fetch('http://localhost:5001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
-  getBattleHistory() {
-    return this.battleHistory;
-  }
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Login failed');
+      }
 
-  // User preference methods
-  updatePreferences(newPreferences) {
-    this.preferences = {
-      ...this.preferences,
-      ...newPreferences
-    };
-  }
-
-  addCuisinePreference(cuisine) {
-    if (!this.preferences.cuisinePreferences.includes(cuisine)) {
-      this.preferences.cuisinePreferences.push(cuisine);
+      const data = await response.json();
+      return new User({
+        username: data.username,
+        displayName: data.displayName,
+        token: data.token,
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
   }
 
-  removeCuisinePreference(cuisine) {
-    this.preferences.cuisinePreferences = this.preferences.cuisinePreferences
-      .filter(c => c !== cuisine);
+  static async signup(username, password, displayName) {
+    try {
+      const response = await fetch('http://localhost:5001/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password, displayName }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Signup failed');
+      }
+
+      const data = await response.json();
+      return new User({
+        username: data.username,
+        displayName: data.displayName,
+        token: data.token,
+      });
+    } catch (error) {
+      console.error('Signup error:', error);
+      throw error;
+    }
   }
 
-  setPriceRange(min, max) {
-    this.preferences.priceRange = [min, max];
+  // Settings methods
+  async updateSettings(newSettings) {
+    try {
+      const response = await fetch('http://localhost:5001/api/user/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.token}`,
+        },
+        body: JSON.stringify(newSettings),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update settings');
+      }
+
+      this.settings = {
+        ...this.settings,
+        ...newSettings,
+      };
+      return true;
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      throw error;
+    }
   }
 
-  setRadius(radius) {
-    this.preferences.radius = radius;
+  // Favorites methods
+  async getFavorites() {
+    try {
+      const response = await fetch('http://localhost:5001/api/favorites', {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch favorites');
+      }
+
+      const data = await response.json();
+      this.favorites = data.favorites;
+      return this.favorites;
+    } catch (error) {
+      console.error('Error fetching favorites:', error);
+      throw error;
+    }
+  }
+
+  async addFavorite(restaurant) {
+    try {
+      const response = await fetch('http://localhost:5001/api/favorites', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.token}`,
+        },
+        body: JSON.stringify(restaurant),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add favorite');
+      }
+
+      await this.getFavorites(); // Refresh favorites list
+      return true;
+    } catch (error) {
+      console.error('Error adding favorite:', error);
+      throw error;
+    }
+  }
+
+  async removeFavorite(placeId) {
+    try {
+      const response = await fetch(`http://localhost:5001/api/favorites?place_id=${placeId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove favorite');
+      }
+
+      await this.getFavorites(); // Refresh favorites list
+      return true;
+    } catch (error) {
+      console.error('Error removing favorite:', error);
+      throw error;
+    }
   }
 
   // Convert to plain object for storage
@@ -140,8 +249,9 @@ class User {
       id: this.id,
       username: this.username,
       displayName: this.displayName,
-      preferences: this.preferences,
-      battleHistory: this.battleHistory,
+      token: this.token,
+      settings: this.settings,
+      favorites: this.favorites,
       location: this.location,
       hasInitializedLocation: this.hasInitializedLocation,
     };

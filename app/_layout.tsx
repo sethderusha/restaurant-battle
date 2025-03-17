@@ -1,15 +1,28 @@
-import { Stack } from "expo-router";
-import { AuthProvider } from "@/context/AuthContext";
+import { Stack } from 'expo-router';
+import { AuthProvider } from '@/context/AuthContext';
+import { useEffect } from 'react';
 import { useFonts } from 'expo-font';
-import { LoadingOverlay } from "@/components/LoadingOverlay";
+import * as SplashScreen from 'expo-splash-screen';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     'SmileySans': require('../assets/fonts/SmileySans-Oblique.ttf'),
+    'SpaceMono': require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  if (!fontsLoaded) {
-    return <LoadingOverlay message="Loading fonts..." />;
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      // Hide the splash screen after the fonts have loaded (or an error was encountered)
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  // Don't render anything until the fonts are loaded
+  if (!fontsLoaded && !fontError) {
+    return null;
   }
 
   return (
@@ -17,4 +30,4 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }} />
     </AuthProvider>
   );
-}
+} 
