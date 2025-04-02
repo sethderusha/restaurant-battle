@@ -1,0 +1,100 @@
+[
+    {
+        "location": {
+            "lat": 40.73,
+            "lng": -74.00072779999999
+        },
+        "name": "Artichoke Basille's Pizza",
+        "open_now": false,
+        "photo_reference": "AUy1YQ36g5pFVgbH1esySJb1u3q0D7IAaeI3yyf6IXMWzJez3b3yZafkOrwDnXA307kOvRXVGtP86cL4yT8I40hfJbTm2s_IwlLP_zC0Qov6IeHcRO3QRePpM3X6JAuXKz5MvBhfQzFxzcnSsfI6bFw9a61V9zlnKhMC4U6foAEbFNsDCQIH5souuOYPqyVB94OA5ASqH8eEDy8teyOiE9gbuyEysZjspHeG3wJ6DfD84pqvfhwwXvArH_pL7H8njE_v2O184xU5L-uhCymfaSt3dcIzsa_bFj3HWzC3sQxgRuE_PV0O7SNF59RjnHFJWo393NSKb2IzDxmdSH_zZC8T8c92oSIlBPTu942coeAM0zfmDq2yQmtNGu2ttqKPykdLbo11qj9jZ6-eh8bJgvl5yzqyRu58OXnXBY-6MWIE0isZ-1CqfOwhpzz0IP9lt_xqP7mfgA9LSL_OAlL1pUD9mgx8_790wCMC2ewHaNtPbTIcCdPYDBxM4JMqiu_5Vt2HHQ7y9q1R3ODi_CZeQuSyuqLJoQMuTMWOd3ZjKXszuBiuNpLjGlS-GuGLWSWM9fKCfzCjDqVGHBjWSbNf1PIfsDLtFTxeQRArsd-TayRAF4MR5K9UNdxqzw43hgsTl2cn8H_l3Q",
+        "place_id": "ChIJ10EpKJJZwokRUjIWaunOQbI",
+        "price_level": 2,
+        "rating": 4.4,
+        "user_ratings_total": 1913,
+        "vicinity": "111 MacDougal Street, New York"
+    },
+    {
+        "location": {
+            "lat": 40.7309083,
+            "lng": -74.0006557
+        },
+        "name": "Blue Note",
+        "open_now": false,
+        "photo_reference": "AUy1YQ3mD9Bon6HT-nx7KN5kFfwY-0UXRim3QwVnwpOGQxlgyp8cVk42xApPrwtrV27xQP0ECzOO5T_qJFnLmLxXprGMVQsJFc2mdKANGW2KnlANxTusd0K5V-RpFdqkJwYljkcQ3auN82b7-79llYSP5YYxXwAZA-DRQeR4qCYo5iSePSXfs2H8GrMzVVXYqDogmyUNEaw-S3wUUR-svyFRo20o7zf-oJ21_teDBg-dC4t-vGQiNuDtcG_qoHemrF_2RejuMNGhvmzXYeeIUGFUYd7B4EzZvjyMECm_fCz6fwdJ2xT_qA2VY0nn0B5wOwdfLKg09K0k5R0",
+        "place_id": "ChIJbfTV15NZwokRSeNM676BEZI",
+        "price_level": 3,
+        "rating": 4.2,
+        "user_ratings_total": 5027,
+        "vicinity": "131 West 3rd Street, New York"
+    },
+    {
+        "location": {
+            "lat": 40.72653280000001,
+            "lng": -74.0021536
+        },
+        "name": "The Dutch",
+        "open_now": false,
+        "photo_reference": "AUy1YQ2JFuVKjsw29Z7CTb0PN6sgjefQaDqztYIrafjaVVR4d0_fT9E8w8Q272kvTX_XALATpTSrQ4qe11YhDoCX4IXAnDw8kE30MVQubyyvrFnkIpDGGzMeouxEA6aA7A9iagQYGQLVzHC43TvMgO3qGfsfUOSB3FgJgsMNuAqHjUMnlVZ0ixLe-J2RxlLjmuGTdUch_wVm7-gSwMmRxCnqgzOyMCgoqb5g4dYRb8H8KvHawyfns1hd_mf_Eom2WIaXKlwjViyCFA03_fAS4HAjPmOl39PB2FT1lrswB1siyf1xzPkFTVIYgNAtUFWGudH6pEsU-jLnKRI",
+        "place_id": "ChIJ3RB9uI1ZwokRxCJXW-HpYZI",
+        "price_level": 3,
+        "rating": 4.3,
+        "user_ratings_total": 2243,
+        "vicinity": "131 Sullivan Street, New York"
+    },
+    {
+        "location": {
+            "lat": 40.73432269999999,
+            "lng": -73.991186
+        },
+        "name": "Max Brenner New York",
+        "open_now": true,
+        "photo_reference": "AUy1YQ1nigS-qWBnJQV_p5IIcB1MzG1PEmhtdzCOgDVhr6XRjjf3BZDd6W0JoAudlsYAAEgWQuPV4A7o8izeDicS7mRcAlb3N5s8hDiC2E6hve8hkprYsu4FCypxyu6m2T8i11n28bkre3GnA0efpkQpBSYiCfzcIxl5ts7ZxDHIyeG7HLTfXKYMlNEJ9a5ozE6hn23RgCrAvh5J9Ydkdgce-FGWAFC-P_CAe9Br7bK3JljH68LLXeGgmv-SA5V2Rspn9xU_ZQHMoylMrlDCSzLmAOq9gSttNo65Oc6eC1q99-Gq1YLYFezb_ngypmx-Uq7n3tzqSeWtICEJNBUhZ8xaZul5VKzm6OtkGxwnzr9MiIYlKokzWb2_eNfnc1glD4ds7HHPaP6W8iKroovZMlyJbADTGdbOi_tRgnc6FwOZvIUsyUhtdxMLPcrGjF21RAG0rNeULnf3A9lGX-maIX6OdX_6z8tee7SbpVT_uspQogS8C9ybHKqb3Uze9ThpM1R9l5joJk2Yt6A2nkOMdQLL2fJf7JLxfMvqUVPgRrECKkUKMfLGuPBS2tuWfg4mV9y82DvNkt65aYDJ5GYaVdZ961-FuZ6XFpN3hAQ4Y7u43mc9iqukAgkkNlw_XGsDXg86zkZ_wlIL",
+        "place_id": "ChIJy9yY5JhZwokRoHFfVHqopeg",
+        "price_level": 2,
+        "rating": 4.3,
+        "user_ratings_total": 6463,
+        "vicinity": "841 Broadway, New York"
+    },
+    {
+        "location": {
+            "lat": 40.73229599999999,
+            "lng": -73.9992785
+        },
+        "name": "Babbo",
+        "open_now": false,
+        "photo_reference": "AUy1YQ07IOwWOeRGm3R1091RNvl7SsJQhd1sqGjgE3ZC-Q-pDz-DKrrefAfJYLgoX2NmDFH0byNS381318cQaRjvV8txSDSBQI8Ib5mBLsQQZ3NApfsFE5eWoqqyF0Zo3ZNzufDTga0IyHGcR36z_gMqZQl3NGNhvOuCqhTWbwAXMwY24ltfgpDsVvlOomJnOE-J6vjxSa5baNhwGlXXUKukQK3BaQwI_SH3_wblXdlmpVYX8N5u9a8soeEJZXn5V5LnOkfl1NzLAF5n6G6_acy7avLlukmEIgsKbPUJy2f9J5Ph0DQLGYGk9WfuF3WhnTUxP5271Ql1yw8",
+        "place_id": "ChIJ0cr5SZFZwokRqThsmC5Caes",
+        "price_level": 4,
+        "rating": 4.3,
+        "user_ratings_total": 1704,
+        "vicinity": "110 Waverly Place, New York"
+    },
+    {
+        "location": {
+            "lat": 40.72266799999999,
+            "lng": -73.99822979999999
+        },
+        "name": "Balthazar",
+        "open_now": true,
+        "photo_reference": "AUy1YQ0Ey5FXvRgrFRB6QXrMLifh0hn_nkvkHiBCWj0A73Oxd8d7mnhQT8vUDDNctszQgdFNOZKuRfrEEzwngvv9XdjuheRAIO8TaC26-CRi3rn3JrBRdZ6UowpDz0kuXj9LWsjy3pk3r-Pm82Zv8C8ymXjTU3ggw45_1p3Jwph-2BesFeGhc7kl_lIWhcylMiDz4DhAYnfrOGkrEplgS14W58dQutwbz7hqLB_epOCuz7jyVMu_ylGs632ltY-03E-WORDbSV0KmUTXH463qSookUlxJFgYpx7ZTbpvqushtQdNL687vr6nW94Vs5_3yAOUapuBAvpG8Ss",
+        "place_id": "ChIJt7fMLIlZwokRCRtM9bNDg78",
+        "price_level": 3,
+        "rating": 4.4,
+        "user_ratings_total": 7049,
+        "vicinity": "80 Spring Street, New York"
+    },
+    {
+        "location": {
+            "lat": 40.730948,
+            "lng": -73.990287
+        },
+        "name": "Ippudo NY",
+        "open_now": false,
+        "photo_reference": "AUy1YQ0jRGNPUQ3lv0XiilL3To_q8si433kctEysOvt1IRmUDw-Indxbh_6Ne3xRx1ZgJryBnX7KYSANDGlZ-ZZbm7mJyVCJbeN8y648oOt_XWj41pGfljeRYA2l0tdURSTlGTM_gSFAC60CsVRvJ1UtrMqlh9ZG7JUyBbXcW4UbKt_3OkVMXxFBf1jQ43sBfK2NHweyu3HnxbYq2yn5ToPFAP28Qit11IFGAAvY1tvIq0d0AFO-akaFMGgkT4RUmzkjBj9YQrDgJ1VnHynKOKuimxsQC6ddjW06wUeFeXhWEuAR9x7jJkuIN8DQ8nHcAArIN12pDxX5tD4",
+        "place_id": "ChIJWUOc55tZwokR9q_g5l051rk",
+        "price_level": 2,
+        "rating": 4.4,
+        "user_ratings_total": 5256,
+        "vicinity": "65 4th Avenue, New York"
+    }
+]

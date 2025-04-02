@@ -11,7 +11,8 @@
     "test": "jest --watchAll",
     "lint": "expo lint",
     "setup": "node scripts/setup.js",
-    "run": "node scripts/start.js"
+    "run": "node scripts/start.js",
+    "test": "node scripts/start.js --test"
   },
   "jest": {
     "preset": "jest-expo"
