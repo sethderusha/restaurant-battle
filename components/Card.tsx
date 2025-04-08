@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import React, {useState, useRef} from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Linking, Clipboard, Animated } from 'react-native';
 // import './Card.css';
 //Card components:
     //Name
@@ -18,14 +18,35 @@ export function Card({ name, image, place_id }: CardProps) {
     };
 
     const [likeButton, clickLike] = useState(require('@/assets/images/like_unselected.png'));
-    const [saveButton, clickSave] = useState(require('@/assets/images/save_unselected.png'));
+    const saveButton = require('@/assets/images/save_unselected.png');
+    const [showClipboardMessage, setShowClipboardMessage] = useState(false);
+    const scaleAnim = useRef(new Animated.Value(1)).current;
 
     const changeLike = () => {
         clickLike(likeButton === require('@/assets/images/like_unselected.png') ? require('@/assets/images/like_selected.png') : require('@/assets/images/like_unselected.png'));
     };
 
-    const changeSave = () => {
-        clickSave(saveButton === require('@/assets/images/save_unselected.png') ? require('@/assets/images/save_selected.png') : require('@/assets/images/save_unselected.png'));
+    const handleShare = () => {
+        const url = `https://www.google.com/maps/place/?q=place_id:${place_id}`;
+        Clipboard.setString(url);
+        
+        // Animate the button press
+        Animated.sequence([
+            Animated.timing(scaleAnim, {
+                toValue: 0.8,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+            Animated.timing(scaleAnim, {
+                toValue: 1,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+        ]).start();
+
+        // Show and hide the clipboard message
+        setShowClipboardMessage(true);
+        setTimeout(() => setShowClipboardMessage(false), 2000);
     };
 
     return (
@@ -46,12 +67,19 @@ export function Card({ name, image, place_id }: CardProps) {
                             style={styles.icon}
                         />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={changeSave}>
-                        <Image
-                            source={saveButton}
-                            style={styles.icon}
-                        />
-                    </TouchableOpacity>
+                    <View style={styles.shareContainer}>
+                        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+                            <TouchableOpacity onPress={handleShare}>
+                                <Image
+                                    source={saveButton}
+                                    style={styles.icon}
+                                />
+                            </TouchableOpacity>
+                        </Animated.View>
+                        {showClipboardMessage && (
+                            <Text style={styles.clipboardMessage}>Link copied!</Text>
+                        )}
+                    </View>
                 </View>
             </View>
         </View>
@@ -113,6 +141,18 @@ const styles = StyleSheet.create({
     icon: {
         width: 50,
         height: 50,
-
+    },
+    shareContainer: {
+        position: 'relative',
+    },
+    clipboardMessage: {
+        position: 'absolute',
+        top: -30,
+        right: 0,
+        backgroundColor: '#284B63',
+        color: 'white',
+        padding: 5,
+        borderRadius: 5,
+        fontSize: 12,
     }
 });
