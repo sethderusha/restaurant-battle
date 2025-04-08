@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 // import './Card.css';
 //Card components:
@@ -17,17 +17,42 @@ export function Card({ name, image, place_id }: CardProps) {
         Linking.openURL(url).catch((err) => console.error('Error opening Maps:', err));
     };
 
+    const [likeButton, clickLike] = useState(require('@/assets/images/like_unselected.png'));
+    const [saveButton, clickSave] = useState(require('@/assets/images/save_unselected.png'));
+
+    const changeLike = () => {
+        clickLike(likeButton === require('@/assets/images/like_unselected.png') ? require('@/assets/images/like_selected.png') : require('@/assets/images/like_unselected.png'));
+    };
+
+    const changeSave = () => {
+        clickSave(saveButton === require('@/assets/images/save_unselected.png') ? require('@/assets/images/save_selected.png') : require('@/assets/images/save_unselected.png'));
+    };
+
     return (
         <View style={styles.card}>
             <TouchableOpacity onPress={handleTitlePress} style={styles.titleContainer}>
                 <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.5}>{name}</Text>
             </TouchableOpacity>
-            <View style={styles.imageContainer}>
+            <View style={[styles.imageContainer]}>
                 <Image 
                     source={image ? { uri: image } : require('@/assets/images/food-fight-logo.png')}
                     style={styles.image}
                     resizeMode="cover"
                 />
+                <View style={styles.iconContainer}>
+                    <TouchableOpacity onPress={changeLike}>
+                        <Image
+                            source={likeButton}
+                            style={styles.icon}
+                        />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={changeSave}>
+                        <Image
+                            source={saveButton}
+                            style={styles.icon}
+                        />
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
@@ -66,7 +91,7 @@ const styles = StyleSheet.create({
         height: 250,
         marginLeft: 25,
         borderRadius: 25,
-        overflow: 'hidden',
+        
         marginTop: 20,
     },
     image: {
@@ -75,5 +100,19 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         borderRadius: 20,
+    },
+    iconContainer: {
+        width: '100%',
+        height: 100,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderColor: 'red',
+        //backgroundColor: 'blue',
+    },
+    icon: {
+        width: 50,
+        height: 50,
+
     }
 });
