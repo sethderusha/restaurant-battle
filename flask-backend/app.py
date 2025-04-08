@@ -23,7 +23,13 @@ from database import (
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+# Update CORS configuration to properly handle preflight requests
+CORS(app, resources={r"/api/*": {
+    "origins": ["http://localhost:8081", "http://localhost:3000", "http://localhost:5000"],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization"],
+    "supports_credentials": True
+}})
 
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key')  # Change in production

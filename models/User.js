@@ -99,7 +99,7 @@ class User {
   // Authentication methods
   static async login(username, password) {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('http://localhost:5001/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ class User {
 
   static async signup(username, password, displayName) {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/signup', {
+      const response = await fetch('http://localhost:5001/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -248,7 +248,7 @@ class User {
 
   async updateProfile(updates) {
     try {
-      const response = await fetch('http://localhost:5000/api/user/settings', {
+      const response = await fetch('http://localhost:5001/api/user/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
