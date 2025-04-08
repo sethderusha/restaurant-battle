@@ -39,7 +39,11 @@ export function BattleView({
         const nextCard: CardProps = {
           name: nextRestaurant.name,
           image: getRestaurantPhotoUrl(nextRestaurant),
-          place_id: nextRestaurant.id
+          place_id: nextRestaurant.id,
+          vicinity: nextRestaurant.vicinity,
+          rating: nextRestaurant.rating,
+          price_level: nextRestaurant.priceLevel,
+          isOpenNow: nextRestaurant.isOpenNow
         };
 
         if (side === 'left') {
@@ -57,7 +61,11 @@ export function BattleView({
         const nextCard: CardProps = {
           name: nextRestaurantObject.name,
           image: getRestaurantPhotoUrl(nextRestaurantObject),
-          place_id: nextRestaurantObject.id
+          place_id: nextRestaurantObject.id,
+          vicinity: nextRestaurantObject.vicinity,
+          rating: nextRestaurantObject.rating,
+          price_level: nextRestaurantObject.priceLevel,
+          isOpenNow: nextRestaurantObject.isOpenNow
         };
 
         if (side === 'left') {
@@ -160,13 +168,21 @@ export function BattleView({
         setLeftCard({
           name: firstRestaurant.name,
           image: getRestaurantPhotoUrl(firstRestaurant),
-          place_id: firstRestaurant.id
+          place_id: firstRestaurant.id,
+          vicinity: firstRestaurant.vicinity,
+          rating: firstRestaurant.rating,
+          price_level: firstRestaurant.priceLevel,
+          isOpenNow: firstRestaurant.isOpenNow
         });
 
         setRightCard({
           name: secondRestaurant.name,
           image: getRestaurantPhotoUrl(secondRestaurant),
-          place_id: secondRestaurant.id
+          place_id: secondRestaurant.id,
+          vicinity: secondRestaurant.vicinity,
+          rating: secondRestaurant.rating,
+          price_level: secondRestaurant.priceLevel,
+          isOpenNow: secondRestaurant.isOpenNow
         });
 
         setCurrentIndex(2); // Start at index 2 since we've used the first two
@@ -194,14 +210,30 @@ export function BattleView({
             style={styles.cardContainer}
             activeOpacity={0.7}
           >
-            <Card name={leftCard.name} image={leftCard.image} place_id={leftCard.place_id} />
+            <Card 
+              name={leftCard.name} 
+              image={leftCard.image} 
+              place_id={leftCard.place_id}
+              vicinity={leftCard.vicinity}
+              rating={leftCard.rating}
+              price_level={leftCard.price_level}
+              isOpenNow={leftCard.isOpenNow}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleCardClick("right")}
             style={styles.cardContainer}
             activeOpacity={0.7}
           >
-            <Card name={rightCard.name} image={rightCard.image} place_id={rightCard.place_id} />
+            <Card 
+              name={rightCard.name} 
+              image={rightCard.image} 
+              place_id={rightCard.place_id}
+              vicinity={rightCard.vicinity}
+              rating={rightCard.rating}
+              price_level={rightCard.price_level}
+              isOpenNow={rightCard.isOpenNow}
+            />
           </TouchableOpacity>
         </View>
       )}
