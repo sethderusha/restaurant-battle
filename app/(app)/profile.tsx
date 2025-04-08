@@ -6,10 +6,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 // Profile picture options - these will be replaced with actual images from assets
 const PROFILE_PICTURES = [
-  { id: 'default', name: 'Default', source: require('@/assets/images/pfps/default.png') },
-  { id: 'avatar1', name: 'Avatar 1', source: require('@/assets/images/pfps/avatar1.png') },
-  { id: 'avatar2', name: 'Avatar 2', source: require('@/assets/images/pfps/avatar2.png') },
-  { id: 'avatar3', name: 'Avatar 3', source: require('@/assets/images/pfps/avatar3.png') },
+  { id: 'burger', name: 'Burger', source: require('@/assets/images/pfps/burger.png') },
+  { id: 'dumpling', name: 'Dumpling', source: require('@/assets/images/pfps/dumpling.png') },
+  { id: 'gyro', name: 'Gyro', source: require('@/assets/images/pfps/gyro.png') },
+  { id: 'sushi', name: 'Sushi', source: require('@/assets/images/pfps/sushi.png') },
 ];
 
 export default function ProfileScreen() {
