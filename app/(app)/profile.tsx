@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Image, Linking, RefreshControl } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Restaurant from '@/models/Restaurant';
+  import { API_URL } from '@/config';
+import { getPhotoUrl } from '@/api/api';
 
 // Profile picture options - these will be replaced with actual images from assets
 const PROFILE_PICTURES = [
@@ -21,7 +24,64 @@ export default function ProfileScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [showProfilePictures, setShowProfilePictures] = useState(false);
   const [selectedPicture, setSelectedPicture] = useState(user?.profilePicture || 'default');
-  const [error, setError] = useState('');
+  const [favorites, setFavorites] = useState<Restaurant[]>([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load favorites when the screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadFavorites = async () => {
+        if (!user) {
+          console.log('❌ Cannot load favorites: No user logged in');
+          return;
+        }
+
+        try {
+          console.log('🔄 Loading favorites for user:', user.id);
+          setLoadingFavorites(true);
+          setError(null);
+          
+          console.log('📡 Making API request to:', `${API_URL}/favorites`);
+          const response = await fetch(`${API_URL}/favorites`, {
+            headers: {
+              'Authorization': `Bearer ${user.token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          console.log('📥 API Response status:', response.status);
+          console.log('📥 API Response headers:', JSON.stringify(Object.fromEntries([...response.headers]), null, 2));
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ Error response from server:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData
+            });
+            throw new Error(errorData.error || 'Failed to load favorites');
+          }
+
+          const data = await response.json();
+          console.log('✅ Raw API Response data:', JSON.stringify(data, null, 2));
+          
+          // The backend returns { favorites: Restaurant[] }
+          const favoritesArray = data.favorites || [];
+          console.log('📋 Processed favorites array:', JSON.stringify(favoritesArray, null, 2));
+          setFavorites(favoritesArray);
+        } catch (err) {
+          console.error('❌ Error loading favorites:', err);
+          setError(err instanceof Error ? err.message : 'Failed to load favorites');
+          setFavorites([]);
+        } finally {
+          setLoadingFavorites(false);
+        }
+      };
+
+      loadFavorites();
+    }, [user])
+  );
 
   const handleSaveProfile = async () => {
     try {
@@ -59,6 +119,80 @@ export default function ProfileScreen() {
     return picture ? picture.source : PROFILE_PICTURES[0].source;
   };
 
+  const renderFavorites = () => {
+    if (loadingFavorites) {
+      return <Text style={styles.emptyText}>Loading favorites...</Text>;
+    }
+
+    if (!favorites || favorites.length === 0) {
+      return <Text style={styles.emptyText}>No favorites yet</Text>;
+    }
+
+    console.log('🔄 Rendering favorites list:', favorites.length, 'items');
+
+    return (
+      <View style={styles.favoritesList}>
+        {favorites.map((restaurant) => {
+          console.log('📍 Processing restaurant:', {
+            id: restaurant.id,
+            place_id: restaurant.place_id,
+            name: restaurant.name,
+            address: restaurant.address,
+            vicinity: restaurant.vicinity,
+            picture: restaurant.picture
+          });
+
+          const placeId = restaurant.place_id || restaurant.id;
+          const address = restaurant.address || restaurant.vicinity;
+          
+          // Use getPhotoUrl to properly format the image URL
+          let imageSource;
+          if (restaurant.picture) {
+            // Check if it's already a full URL or just a photo reference
+            if (restaurant.picture.startsWith('http')) {
+              imageSource = { uri: restaurant.picture };
+            } else {
+              // It's a photo reference, use the getPhotoUrl function
+              imageSource = { uri: getPhotoUrl(restaurant.picture) };
+            }
+          } else {
+            // Fallback to default image
+            imageSource = require('@/assets/images/food-fight-logo.png');
+          }
+
+          return (
+            <TouchableOpacity
+              key={placeId}
+              style={styles.favoriteItem}
+              onPress={() => {
+                const url = `https://www.google.com/maps/place/?q=place_id:${placeId}`;
+                Linking.openURL(url).catch((err) => {
+                  console.error('❌ Error opening Maps:', err);
+                  setError('Failed to open restaurant location');
+                });
+              }}
+            >
+              <Image
+                source={imageSource}
+                style={styles.favoriteImage}
+                onError={(e) => console.error('❌ Error loading image:', e.nativeEvent.error)}
+              />
+              <View style={styles.favoriteInfo}>
+                <Text style={styles.favoriteName} numberOfLines={1}>{restaurant.name}</Text>
+                {address && (
+                  <Text style={styles.favoriteAddress} numberOfLines={1}>{address}</Text>
+                )}
+                {restaurant.rating && (
+                  <Text style={styles.favoriteRating}>⭐ {restaurant.rating}</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -77,7 +211,7 @@ export default function ProfileScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Favorites</Text>
-        <Text style={styles.emptyText}>No favorites yet</Text>
+        {renderFavorites()}
       </View>
 
       <View style={styles.section}>
@@ -277,9 +411,10 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   emptyText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 16,
     textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontStyle: 'italic',
+    marginTop: 10,
   },
   modalContainer: {
     flex: 1,
@@ -366,5 +501,40 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontFamily: 'SmileySans',
+  },
+  favoritesList: {
+    marginTop: 10,
+  },
+  favoriteItem: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  favoriteImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+  },
+  favoriteInfo: {
+    flex: 1,
+    padding: 10,
+    justifyContent: 'center',
+  },
+  favoriteName: {
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: 'SmileySans',
+    marginBottom: 4,
+  },
+  favoriteAddress: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  favoriteRating: {
+    color: '#fff',
+    fontSize: 14,
   },
 }); 

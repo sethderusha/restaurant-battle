@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Linking, Clipboard, Animated } from 'react-native';
 // import './Card.css';
 //Card components:
@@ -13,21 +13,85 @@ export type CardProps = {
     rating?: number;
     price_level?: number;
     isOpenNow?: boolean;
+    onFavoriteToggle?: (place_id: string, isFavorite: boolean) => void;
+    isFavorite?: boolean;
+    restaurant?: any; // Add the restaurant property
 }
 
-export function Card({ name, image, place_id, vicinity, rating, price_level, isOpenNow }: CardProps) {
+export function Card({ 
+    name, 
+    image, 
+    place_id, 
+    vicinity, 
+    rating, 
+    price_level, 
+    isOpenNow,
+    onFavoriteToggle,
+    isFavorite: initialIsFavorite = false
+}: CardProps) {
     const handleTitlePress = () => {
         const url = `https://www.google.com/maps/place/?q=place_id:${place_id}`;
         Linking.openURL(url).catch((err) => console.error('Error opening Maps:', err));
     };
 
-    const [likeButton, clickLike] = useState(require('@/assets/images/like_unselected.png'));
+    // Use a ref to track the previous value of initialIsFavorite
+    const prevIsFavoriteRef = useRef(initialIsFavorite);
+    
+    const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
+    const [likeButton, clickLike] = useState(
+        initialIsFavorite 
+            ? require('@/assets/images/like_selected.png') 
+            : require('@/assets/images/like_unselected.png')
+    );
     const [shareButton, setShareButton] = useState(require('@/assets/images/save_unselected.png'));
     const [showClipboardMessage, setShowClipboardMessage] = useState(false);
+    const [showFavoriteMessage, setShowFavoriteMessage] = useState(false);
     const scaleAnim = useRef(new Animated.Value(1)).current;
 
+    // Update internal state when initialIsFavorite prop changes
+    useEffect(() => {
+        // Only update if the value has actually changed
+        if (prevIsFavoriteRef.current !== initialIsFavorite) {
+            console.log(`Updating favorite state for ${name}: ${initialIsFavorite}`);
+            setIsFavorite(initialIsFavorite);
+            clickLike(
+                initialIsFavorite 
+                    ? require('@/assets/images/like_selected.png') 
+                    : require('@/assets/images/like_unselected.png')
+            );
+            prevIsFavoriteRef.current = initialIsFavorite;
+        }
+    }, [initialIsFavorite, name]);
+
+    // Force update the favorite state when the component mounts
+    useEffect(() => {
+        console.log(`Card mounted for ${name}, initialIsFavorite: ${initialIsFavorite}`);
+        setIsFavorite(initialIsFavorite);
+        clickLike(
+            initialIsFavorite 
+                ? require('@/assets/images/like_selected.png') 
+                : require('@/assets/images/like_unselected.png')
+        );
+        prevIsFavoriteRef.current = initialIsFavorite;
+    }, []);
+
     const changeLike = () => {
-        clickLike(likeButton === require('@/assets/images/like_unselected.png') ? require('@/assets/images/like_selected.png') : require('@/assets/images/like_unselected.png'));
+        const newFavoriteState = !isFavorite;
+        setIsFavorite(newFavoriteState);
+        clickLike(
+            newFavoriteState 
+                ? require('@/assets/images/like_selected.png') 
+                : require('@/assets/images/like_unselected.png')
+        );
+        
+        // Call the onFavoriteToggle callback if provided
+        if (onFavoriteToggle) {
+            onFavoriteToggle(place_id, newFavoriteState);
+        }
+        
+        // Show favorite message
+        setShowFavoriteMessage(true);
+        setTimeout(() => setShowFavoriteMessage(false), 2000);
     };
 
     const handleShare = () => {
@@ -121,12 +185,21 @@ export function Card({ name, image, place_id, vicinity, rating, price_level, isO
                     )}
                 </View>
                 <View style={styles.iconContainer}>
-                    <TouchableOpacity onPress={changeLike}>
-                        <Image
-                            source={likeButton}
-                            style={styles.icon}
-                        />
-                    </TouchableOpacity>
+                    <View style={styles.favoriteContainer}>
+                        <TouchableOpacity onPress={changeLike}>
+                            <Image
+                                source={isFavorite 
+                                    ? require('@/assets/images/like_selected.png') 
+                                    : require('@/assets/images/like_unselected.png')}
+                                style={styles.icon}
+                            />
+                        </TouchableOpacity>
+                        {showFavoriteMessage && (
+                            <Text style={styles.favoriteMessage}>
+                                {isFavorite ? 'Added to favorites!' : 'Removed from favorites'}
+                            </Text>
+                        )}
+                    </View>
                     <View style={styles.shareContainer}>
                         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                             <TouchableOpacity onPress={handleShare}>
@@ -218,6 +291,20 @@ const styles = StyleSheet.create({
     icon: {
         width: 45,
         height: 45,
+    },
+    favoriteContainer: {
+        position: 'relative',
+    },
+    favoriteMessage: {
+        position: 'absolute',
+        top: -30,
+        left: 0,
+        backgroundColor: '#284B63',
+        color: 'white',
+        padding: 5,
+        borderRadius: 5,
+        fontSize: 12,
+        fontFamily: 'SmileySans',
     },
     shareContainer: {
         position: 'relative',

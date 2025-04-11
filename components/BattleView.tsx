@@ -25,6 +25,7 @@ export function BattleView({
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [currentIndex, setCurrentIndex] = useState(2);
   const [sessionId] = useState(() => uuidv4());
+  const [favoriteRestaurants, setFavoriteRestaurants] = useState<Set<string>>(new Set());
 
   // Helper function to get photo URL consistently
   const getRestaurantPhotoUrl = (restaurant: Restaurant) => {
@@ -32,10 +33,121 @@ export function BattleView({
     return photoRef ? getPhotoUrl(photoRef) : require('@/assets/images/food-fight-logo.png');
   };
 
+  // Load user favorites on component mount
+  useEffect(() => {
+    const loadFavorites = async () => {
+      if (user) {
+        try {
+          console.log("Loading favorites for user...");
+          const favorites = await user.getFavorites();
+          console.log("Favorites loaded:", favorites);
+          const favoriteIds = new Set<string>(favorites.map((fav: Restaurant) => fav.id));
+          console.log("Favorite IDs:", Array.from(favoriteIds));
+          setFavoriteRestaurants(favoriteIds);
+          
+          // Update the favorite state of current cards if they exist
+          if (leftCard.place_id && favoriteIds.has(leftCard.place_id)) {
+            console.log(`Setting left card ${leftCard.name} as favorite`);
+            setLeftCard(prev => ({...prev, isFavorite: true}));
+          }
+          
+          if (rightCard.place_id && favoriteIds.has(rightCard.place_id)) {
+            console.log(`Setting right card ${rightCard.name} as favorite`);
+            setRightCard(prev => ({...prev, isFavorite: true}));
+          }
+        } catch (error) {
+          console.error("Error loading favorites:", error);
+        }
+      }
+    };
+
+    loadFavorites();
+  }, [user]);
+
+  // Add a new effect to update card favorite states when favoriteRestaurants changes
+  useEffect(() => {
+    console.log("favoriteRestaurants changed:", Array.from(favoriteRestaurants));
+    
+    // Update left card favorite state
+    if (leftCard.place_id) {
+      const isFavorite = favoriteRestaurants.has(leftCard.place_id);
+      console.log(`Left card ${leftCard.name} favorite state: ${isFavorite}`);
+      if (leftCard.isFavorite !== isFavorite) {
+        setLeftCard(prev => ({...prev, isFavorite}));
+      }
+    }
+    
+    // Update right card favorite state
+    if (rightCard.place_id) {
+      const isFavorite = favoriteRestaurants.has(rightCard.place_id);
+      console.log(`Right card ${rightCard.name} favorite state: ${isFavorite}`);
+      if (rightCard.isFavorite !== isFavorite) {
+        setRightCard(prev => ({...prev, isFavorite}));
+      }
+    }
+  }, [favoriteRestaurants]);
+
+  // Handle toggling favorites
+  const handleFavoriteToggle = async (place_id: string, isFavorite: boolean) => {
+    console.log('🎯 handleFavoriteToggle called with:', { place_id, isFavorite });
+    
+    if (!user) {
+      console.error("No user logged in");
+      return;
+    }
+
+    try {
+      console.log('🔄 Toggling favorite:', { place_id, isFavorite });
+      
+      if (isFavorite) {
+        // Get the restaurant data from the current card
+        const currentCard = place_id === leftCard.place_id ? leftCard : rightCard;
+        console.log('📍 Current card:', currentCard);
+        
+        if (currentCard.restaurant) {
+          console.log('➕ Adding favorite:', currentCard.restaurant.name);
+          const result = await user.addFavorite(currentCard.restaurant);
+          console.log('✅ Add favorite API response:', result);
+          
+          // Refresh the favorites list
+          const updatedFavorites = await user.getFavorites();
+          console.log('✅ Favorites updated after adding:', updatedFavorites);
+          
+          // Update the local state
+          setFavoriteRestaurants(prev => {
+            const newSet = new Set(prev);
+            newSet.add(place_id);
+            return newSet;
+          });
+        }
+      } else {
+        console.log('➖ Removing favorite:', place_id);
+        const result = await user.removeFavorite(place_id);
+        console.log('✅ Remove favorite API response:', result);
+        
+        // Refresh the favorites list
+        const updatedFavorites = await user.getFavorites();
+        console.log('✅ Favorites updated after removing:', updatedFavorites);
+        
+        // Update the local state
+        setFavoriteRestaurants(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(place_id);
+          return newSet;
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error toggling favorite:", error);
+    }
+  };
+
   const getNext = async (side: "left" | "right") => {
     try {
       if (currentIndex < restaurants.length) {
         const nextRestaurant = restaurants[currentIndex];
+        const isFavorite = favoriteRestaurants.has(nextRestaurant.id);
+        console.log(`Creating next card for ${nextRestaurant.name}, isFavorite: ${isFavorite}`);
+        
         const nextCard: CardProps = {
           name: nextRestaurant.name,
           image: getRestaurantPhotoUrl(nextRestaurant),
@@ -43,7 +155,10 @@ export function BattleView({
           vicinity: nextRestaurant.vicinity,
           rating: nextRestaurant.rating,
           price_level: nextRestaurant.priceLevel,
-          isOpenNow: nextRestaurant.isOpenNow
+          isOpenNow: nextRestaurant.isOpenNow,
+          isFavorite: isFavorite,
+          onFavoriteToggle: handleFavoriteToggle,
+          restaurant: nextRestaurant
         };
 
         if (side === 'left') {
@@ -57,6 +172,8 @@ export function BattleView({
         console.log("Getting next restaurant with session:", sessionId);
         const nextRestaurant = await getNextRestaurant(sessionId);
         const nextRestaurantObject = new Restaurant(nextRestaurant.restaurant);
+        const isFavorite = favoriteRestaurants.has(nextRestaurantObject.id);
+        console.log(`Creating next card for ${nextRestaurantObject.name}, isFavorite: ${isFavorite}`);
         
         const nextCard: CardProps = {
           name: nextRestaurantObject.name,
@@ -65,7 +182,10 @@ export function BattleView({
           vicinity: nextRestaurantObject.vicinity,
           rating: nextRestaurantObject.rating,
           price_level: nextRestaurantObject.priceLevel,
-          isOpenNow: nextRestaurantObject.isOpenNow
+          isOpenNow: nextRestaurantObject.isOpenNow,
+          isFavorite: isFavorite,
+          onFavoriteToggle: handleFavoriteToggle,
+          restaurant: nextRestaurantObject
         };
 
         if (side === 'left') {
@@ -164,6 +284,11 @@ export function BattleView({
         // Set initial cards using the first two restaurants
         const firstRestaurant = restaurantObjects[0];
         const secondRestaurant = restaurantObjects[1];
+        
+        const firstIsFavorite = favoriteRestaurants.has(firstRestaurant.id);
+        const secondIsFavorite = favoriteRestaurants.has(secondRestaurant.id);
+        
+        console.log(`Setting initial cards: ${firstRestaurant.name} (isFavorite: ${firstIsFavorite}), ${secondRestaurant.name} (isFavorite: ${secondIsFavorite})`);
 
         setLeftCard({
           name: firstRestaurant.name,
@@ -172,7 +297,10 @@ export function BattleView({
           vicinity: firstRestaurant.vicinity,
           rating: firstRestaurant.rating,
           price_level: firstRestaurant.priceLevel,
-          isOpenNow: firstRestaurant.isOpenNow
+          isOpenNow: firstRestaurant.isOpenNow,
+          isFavorite: firstIsFavorite,
+          onFavoriteToggle: handleFavoriteToggle,
+          restaurant: firstRestaurant
         });
 
         setRightCard({
@@ -182,7 +310,10 @@ export function BattleView({
           vicinity: secondRestaurant.vicinity,
           rating: secondRestaurant.rating,
           price_level: secondRestaurant.priceLevel,
-          isOpenNow: secondRestaurant.isOpenNow
+          isOpenNow: secondRestaurant.isOpenNow,
+          isFavorite: secondIsFavorite,
+          onFavoriteToggle: handleFavoriteToggle,
+          restaurant: secondRestaurant
         });
 
         setCurrentIndex(2); // Start at index 2 since we've used the first two
@@ -193,7 +324,7 @@ export function BattleView({
     };
 
     fetchRestaurants();
-  }, [user]);
+  }, [user, favoriteRestaurants]);
 
   if (loading) {
     return <LoadingOverlay message="Loading nearby restaurants..." />;
@@ -211,6 +342,7 @@ export function BattleView({
             activeOpacity={0.7}
           >
             <Card 
+              key={`left-${leftCard.place_id}-${leftCard.isFavorite}`}
               name={leftCard.name} 
               image={leftCard.image} 
               place_id={leftCard.place_id}
@@ -218,6 +350,8 @@ export function BattleView({
               rating={leftCard.rating}
               price_level={leftCard.price_level}
               isOpenNow={leftCard.isOpenNow}
+              isFavorite={leftCard.isFavorite}
+              onFavoriteToggle={handleFavoriteToggle}
             />
           </TouchableOpacity>
           <TouchableOpacity
@@ -226,6 +360,7 @@ export function BattleView({
             activeOpacity={0.7}
           >
             <Card 
+              key={`right-${rightCard.place_id}-${rightCard.isFavorite}`}
               name={rightCard.name} 
               image={rightCard.image} 
               place_id={rightCard.place_id}
@@ -233,6 +368,8 @@ export function BattleView({
               rating={rightCard.rating}
               price_level={rightCard.price_level}
               isOpenNow={rightCard.isOpenNow}
+              isFavorite={rightCard.isFavorite}
+              onFavoriteToggle={handleFavoriteToggle}
             />
           </TouchableOpacity>
         </View>
