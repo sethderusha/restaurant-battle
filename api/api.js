@@ -3,6 +3,7 @@ const axios = require("axios").default;
 const AsyncStorage = require("@react-native-async-storage/async-storage");
 const Constants = require('expo-constants');
 const { Platform } = require('react-native');
+const { API_URL } = require('../config');
 
 let restaurantData = [];
 let currentIndex = 0;
@@ -18,13 +19,8 @@ console.log('Environment variables:', {
 
 // Base URL configuration
 const getBaseUrl = () => {
-  if (__DEV__) {
-    // Development - use local server
-    // Note: Use your computer's IP address when testing on physical device
-    return "http://localhost:5001";
-  }
-  // Production URL
-  return "https://your-production-url.com"; // TODO: Change this to your production URL
+  // Use the API_URL from config
+  return API_URL.replace('/api', '');
 };
 
 const API_BASE_URL = getBaseUrl();

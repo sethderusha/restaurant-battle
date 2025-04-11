@@ -1,5 +1,6 @@
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_URL } from '@/config';
 
 class User {
   constructor(data) {
@@ -99,7 +100,7 @@ class User {
   // Authentication methods
   static async login(username, password) {
     try {
-      const response = await fetch('http://localhost:5001/api/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +129,7 @@ class User {
 
   static async signup(username, password, displayName) {
     try {
-      const response = await fetch('http://localhost:5001/api/auth/signup', {
+      const response = await fetch(`${API_URL}/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -166,11 +167,11 @@ class User {
   // Settings methods
   async updateSettings(newSettings) {
     try {
-      const response = await fetch('http://localhost:5001/api/user/settings', {
+      const response = await fetch(`${API_URL}/user/settings`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.getToken()}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(newSettings),
       });
@@ -196,7 +197,7 @@ class User {
       console.log('🔍 Getting favorites for user:', this.username);
       console.log('🔑 Using token:', this.token);
       
-      const url = 'http://localhost:5001/api/favorites';
+      const url = `${API_URL}/favorites`;
       console.log('📡 Making GET request to:', url);
       
       const response = await fetch(url, {
@@ -260,7 +261,7 @@ class User {
         price: restaurant.price_level || restaurant.price || null
       };
       
-      const url = 'http://localhost:5001/api/favorites';
+      const url = `${API_URL}/favorites`;
       console.log('📡 Making POST request to:', url);
       console.log('📦 POST Request body:', JSON.stringify(favoriteData, null, 2));
       
@@ -299,7 +300,7 @@ class User {
       console.log('➖ Removing favorite with place_id:', placeId);
       console.log('🔑 Using token:', this.token);
       
-      const url = `http://localhost:5001/api/favorites?place_id=${placeId}`;
+      const url = `${API_URL}/favorites?place_id=${placeId}`;
       console.log('📡 Making DELETE request to:', url);
       
       const response = await fetch(url, {
@@ -332,11 +333,11 @@ class User {
 
   async updateProfile(updates) {
     try {
-      const response = await fetch('http://localhost:5001/api/user/settings', {
+      const response = await fetch(`${API_URL}/user/settings`, {
         method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await this.getToken()}`,
         },
         body: JSON.stringify(updates),
       });
@@ -356,6 +357,190 @@ class User {
       return data;
     } catch (error) {
       console.error('Profile update error:', error);
+      throw error;
+    }
+  }
+
+  // Playlist methods
+  async getPlaylists() {
+    try {
+      const response = await fetch(`${API_URL}/playlists`, {
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch playlists');
+      }
+
+      const data = await response.json();
+      return data.playlists;
+    } catch (error) {
+      console.error('Error fetching playlists:', error);
+      throw error;
+    }
+  }
+
+  async createPlaylist(name) {
+    try {
+      const response = await fetch(`${API_URL}/playlists`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create playlist');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error creating playlist:', error);
+      throw error;
+    }
+  }
+
+  async getPlaylistItems(playlistId) {
+    try {
+      const response = await fetch(`${API_URL}/playlists/${playlistId}`, {
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch playlist items');
+      }
+
+      const data = await response.json();
+      return data.items;
+    } catch (error) {
+      console.error('Error fetching playlist items:', error);
+      throw error;
+    }
+  }
+
+  async addToPlaylist(playlistId, restaurant) {
+    try {
+      const response = await fetch(`${API_URL}/playlists/${playlistId}/items`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(restaurant),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to add to playlist');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error adding to playlist:', error);
+      throw error;
+    }
+  }
+
+  async removeFromPlaylist(playlistId, placeId) {
+    try {
+      const response = await fetch(`${API_URL}/playlists/${playlistId}/items?place_id=${placeId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to remove from playlist');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error removing from playlist:', error);
+      throw error;
+    }
+  }
+
+  async deletePlaylist(playlistId) {
+    try {
+      const response = await fetch(`${API_URL}/playlists/${playlistId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete playlist');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error deleting playlist:', error);
+      throw error;
+    }
+  }
+
+  async searchRestaurants(query) {
+    try {
+      const response = await fetch(`${API_URL}/restaurants/search?query=${encodeURIComponent(query)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to search restaurants');
+      }
+
+      const data = await response.json();
+      return data.results;
+    } catch (error) {
+      console.error('Error searching restaurants:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add a restaurant to favorites manually
+   * @param {string|null} placeId - Google Places API place_id
+   * @returns {Promise<Object>} - Response data
+   */
+  async addManualFavorite(placeId) {
+    try {
+      const response = await fetch(`${API_URL}/favorites/manual`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ place_id: placeId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to add favorite');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error adding manual favorite:', error);
       throw error;
     }
   }

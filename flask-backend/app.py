@@ -16,8 +16,15 @@ from database import (
     update_user_settings,
     add_favorite,
     remove_favorite,
-    get_user_favorites
+    get_user_favorites,
+    create_playlist,
+    get_user_playlists,
+    get_playlist_items,
+    add_to_playlist,
+    remove_from_playlist,
+    delete_playlist
 )
+import re
 
 # Load environment variables
 load_dotenv()
@@ -416,6 +423,251 @@ def get_photo():
 
     # Return the image directly
     return response.content, response.status_code, response.headers.items()
+
+def parse_google_maps_url(url):
+    try:
+        print(f"🔍 Parsing Google Maps URL: {url}")
+        place_id = None
+        
+        # Clean the URL by removing any trailing slashes or parameters
+        url = url.strip().rstrip('/')
+        
+        if 'maps.app.goo.gl' in url or 'goo.gl' in url:
+            # Format: https://maps.app.goo.gl/A8mmiPFV7VnvpBJZ9
+            print(f"🔄 Detected shortened URL format: {url}")
+            
+            try:
+                # Set up a session to handle redirects manually
+                session = requests.Session()
+                
+                # First, make a HEAD request to get the redirect chain
+                head_response = session.head(url, allow_redirects=True)
+                print(f"🔄 Redirect chain: {head_response.history}")
+                final_url = head_response.url
+                print(f"🔄 Final URL after redirect: {final_url}")
+                
+                # Now make a GET request to get the actual content
+                response = session.get(final_url)
+                content = response.text
+                print(f"🔄 Got response content length: {len(content)}")
+                
+                # Try different methods to extract the place_id
+                if 'place_id=' in final_url:
+                    place_id = final_url.split('place_id=')[1].split('&')[0]
+                    print(f"✅ Extracted place_id from redirected URL query: {place_id}")
+                elif 'data=!3m1!4b1!4m' in content:
+                    # Try to find place_id in the page content
+                    match = re.search(r'!1s([^!]+)!', content)
+                    if match:
+                        place_id = match.group(1)
+                        print(f"✅ Extracted place_id from page content: {place_id}")
+                    else:
+                        print("❌ Could not find place_id pattern in page content")
+                elif '/place/' in final_url:
+                    parts = final_url.split('/place/')
+                    if len(parts) > 1:
+                        potential_id = parts[1].split('/')[0]
+                        if potential_id.startswith('ChI'):
+                            place_id = potential_id
+                            print(f"✅ Extracted place_id from URL path: {place_id}")
+                        else:
+                            print(f"❌ Found path segment but not a valid place_id: {potential_id}")
+                
+                if not place_id:
+                    # Try to find coordinates and search nearby
+                    coord_match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', final_url)
+                    if coord_match:
+                        lat, lng = coord_match.groups()
+                        print(f"✅ Found coordinates: {lat}, {lng}")
+                        
+                        # Use Places API nearby search
+                        search_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+                        search_params = {
+                            "location": f"{lat},{lng}",
+                            "radius": "50",  # Very small radius to get exact match
+                            "key": GOOGLE_API_KEY
+                        }
+                        
+                        search_response = requests.get(search_url, params=search_params)
+                        search_data = search_response.json()
+                        
+                        if search_data.get("status") == "OK" and search_data.get("results"):
+                            place_id = search_data["results"][0]["place_id"]
+                            print(f"✅ Found place_id from nearby search: {place_id}")
+                        else:
+                            print(f"❌ Nearby search failed: {search_data.get('status')}")
+                    else:
+                        print("❌ Could not find coordinates in URL")
+                
+            except requests.exceptions.RequestException as e:
+                print(f"❌ Error following redirect: {str(e)}")
+                raise ValueError(f"Failed to follow redirect: {str(e)}")
+            
+        elif 'place_id=' in url:
+            # Format: https://www.google.com/maps/place/?q=place_id:ChIJ...
+            place_id = url.split('place_id=')[1].split('&')[0]
+            print(f"✅ Extracted place_id from query parameter: {place_id}")
+        else:
+            print(f"❌ Unsupported URL format: {url}")
+            raise ValueError("Unsupported URL format")
+        
+        if not place_id:
+            print("❌ Could not extract place_id using any method")
+            raise ValueError("Could not extract place_id from URL")
+        
+        # Validate the place_id format
+        if not place_id.startswith('ChI'):
+            print(f"❌ Invalid place_id format: {place_id}")
+            raise ValueError("Invalid place_id format")
+            
+        print(f"✅ Final place_id: {place_id}")
+        return place_id
+        
+    except Exception as e:
+        print(f"❌ Error parsing Google Maps URL: {str(e)}")
+        raise ValueError(f"Failed to parse Google Maps URL: {str(e)}")
+
+@app.route('/api/playlists', methods=['GET', 'POST'])
+@token_required
+def handle_playlists(current_user):
+    if request.method == 'GET':
+        playlists = get_user_playlists(current_user['id'])
+        return jsonify({'playlists': playlists}), 200
+    
+    elif request.method == 'POST':
+        data = request.json
+        name = data.get('name')
+        if not name:
+            return jsonify({'error': 'Playlist name is required'}), 400
+        
+        playlist_id = create_playlist(current_user['id'], name)
+        if playlist_id:
+            return jsonify({
+                'message': 'Playlist created successfully',
+                'playlist_id': playlist_id
+            }), 201
+        return jsonify({'error': 'Could not create playlist'}), 500
+
+@app.route('/api/playlists/<int:playlist_id>', methods=['GET', 'DELETE'])
+@token_required
+def handle_playlist(current_user, playlist_id):
+    if request.method == 'GET':
+        items = get_playlist_items(playlist_id)
+        return jsonify({'items': items}), 200
+    
+    elif request.method == 'DELETE':
+        if delete_playlist(playlist_id):
+            return jsonify({'message': 'Playlist deleted successfully'}), 200
+        return jsonify({'error': 'Could not delete playlist'}), 500
+
+@app.route('/api/playlists/<int:playlist_id>/items', methods=['POST', 'DELETE'])
+@token_required
+def handle_playlist_items(current_user, playlist_id):
+    if request.method == 'POST':
+        data = request.json
+        if add_to_playlist(playlist_id, data):
+            return jsonify({'message': 'Restaurant added to playlist'}), 201
+        return jsonify({'error': 'Could not add to playlist'}), 500
+    
+    elif request.method == 'DELETE':
+        place_id = request.args.get('place_id')
+        if not place_id:
+            return jsonify({'error': 'Missing place_id'}), 400
+        
+        if remove_from_playlist(playlist_id, place_id):
+            return jsonify({'message': 'Restaurant removed from playlist'}), 200
+        return jsonify({'error': 'Could not remove from playlist'}), 500
+
+@app.route('/api/restaurants/search', methods=['GET'])
+@token_required
+def search_restaurants(current_user):
+    query = request.args.get('query')
+    
+    if not query:
+        return jsonify({'error': 'Search query is required'}), 400
+    
+    try:
+        # Use Google Places Autocomplete API
+        url = "https://maps.googleapis.com/maps/api/place/autocomplete/json"
+        params = {
+            "input": query,
+            "types": "restaurant",
+            "key": GOOGLE_API_KEY
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
+        
+        if data["status"] != "OK":
+            error_message = data.get("error_message", "Unknown error")
+            return jsonify({'error': f'Could not search restaurants: {error_message}'}), 400
+        
+        # Format the results
+        results = []
+        for prediction in data["predictions"]:
+            results.append({
+                "place_id": prediction["place_id"],
+                "name": prediction["structured_formatting"]["main_text"],
+                "address": prediction["structured_formatting"]["secondary_text"]
+            })
+        
+        return jsonify({'results': results}), 200
+    
+    except Exception as e:
+        print(f"❌ Exception in search_restaurants: {str(e)}")
+        return jsonify({'error': f'Failed to search restaurants: {str(e)}'}), 500
+
+@app.route('/api/favorites/manual', methods=['POST'])
+@token_required
+def add_manual_favorite(current_user):
+    data = request.json
+    place_id = data.get('place_id')
+    
+    if not place_id:
+        print("❌ No place_id provided in request")
+        return jsonify({'error': 'Place ID is required'}), 400
+    
+    try:
+        # Make a request to Google Places API to get restaurant details
+        url = "https://maps.googleapis.com/maps/api/place/details/json"
+        params = {
+            "place_id": place_id,
+            "fields": "name,formatted_address,rating,price_level,photos",
+            "key": GOOGLE_API_KEY
+        }
+        
+        print(f"🔄 Making Places API request with params: {params}")
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            data = response.json()
+            print(f"🔄 Places API response status: {data.get('status')}")
+            
+            if data["status"] != "OK":
+                error_message = data.get("error_message", "Unknown error")
+                print(f"❌ Places API error: {error_message}")
+                return jsonify({'error': f'Could not fetch restaurant details: {error_message}'}), 400
+            
+            result = data["result"]
+            restaurant_data = {
+                "place_id": place_id,
+                "name": result["name"],
+                "address": result.get("formatted_address", ""),
+                "rating": result.get("rating", 0),
+                "price": result.get("price_level", 0),
+                "picture": result.get("photos", [{}])[0].get("photo_reference", "") if result.get("photos") else ""
+            }
+            
+            print(f"✅ Adding favorite with data: {restaurant_data}")
+            if add_favorite(current_user['id'], restaurant_data):
+                return jsonify({'message': 'Restaurant added to favorites'}), 201
+            return jsonify({'error': 'Could not add to favorites'}), 500
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error making Places API request: {str(e)}")
+            return jsonify({'error': f'Failed to connect to Google Places API: {str(e)}'}), 500
+        
+    except Exception as e:
+        print(f"❌ Exception in add_manual_favorite: {str(e)}")
+        return jsonify({'error': f'Failed to process request: {str(e)}'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
