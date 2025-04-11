@@ -112,12 +112,20 @@ def get_user(username):
             c.execute('SELECT * FROM users WHERE username = ?', (username,))
             user = c.fetchone()
             if user:
+                # Properly handle app_settings deserialization
+                app_settings = None
+                if user[4]:  # If app_settings exists
+                    try:
+                        app_settings = json.loads(user[4])
+                    except json.JSONDecodeError:
+                        app_settings = {}
+                
                 return {
                     'id': user[0],
                     'username': user[1],
                     'password_hash': user[2],
                     'display_name': user[3],
-                    'app_settings': json.loads(user[4]) if user[4] else None,
+                    'app_settings': app_settings,
                     'created_at': user[5]
                 }
             return None
@@ -130,6 +138,15 @@ def update_user_settings(user_id, app_settings):
     if conn is not None:
         try:
             c = conn.cursor()
+            # Ensure app_settings is a dictionary before serializing
+            if app_settings is None:
+                app_settings = {}
+            elif isinstance(app_settings, str):
+                try:
+                    app_settings = json.loads(app_settings)
+                except json.JSONDecodeError:
+                    app_settings = {}
+            
             c.execute('''
                 UPDATE users 
                 SET app_settings = ?

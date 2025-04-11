@@ -22,9 +22,11 @@ from database import (
     get_playlist_items,
     add_to_playlist,
     remove_from_playlist,
-    delete_playlist
+    delete_playlist,
+    create_connection
 )
 import re
+from sqlite3 import Error
 
 # Load environment variables
 load_dotenv()
@@ -32,7 +34,8 @@ load_dotenv()
 app = Flask(__name__)
 # Update CORS configuration to properly handle preflight requests
 CORS(app, resources={r"/api/*": {
-    "origins": ["http://localhost:8081", "http://localhost:3000", "http://localhost:5000"],
+    "origins": ["http://localhost:8081", "http://localhost:3000", "http://localhost:5000", 
+                "http://localhost:19006", "http://localhost:19000", "http://localhost:19001"],
     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"],
     "supports_credentials": True
