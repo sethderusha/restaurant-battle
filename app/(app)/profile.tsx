@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Restaurant from '@/models/Restaurant';
-  import { API_URL } from '@/config';
+import { API_URL } from '@/config';
 import { getPhotoUrl } from '@/api/api';
 
 // Profile picture options - these will be replaced with actual images from assets
