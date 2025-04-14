@@ -1,1 +1,4 @@
 web-build/
+node_modules/
+expo-env.d.ts
+.expo/
