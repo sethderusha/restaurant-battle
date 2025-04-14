@@ -1,8 +1,8 @@
-import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, Text, TouchableOpacity, Dimensions, useWindowDimensions } from "react-native";
 import { Card, CardProps } from "@/components/Card";
 import { getNearbyRestaurants, getNextRestaurant, getPhotoUrl } from "@/api/api";
 import { v4 as uuidv4 } from "uuid";
-import { useState, useEffect } from "react";
 import Restaurant from "@/models/Restaurant";
 import User from "@/models/User";
 import { useAuth } from "@/context/AuthContext";
@@ -26,6 +26,8 @@ export function BattleView({
   const [currentIndex, setCurrentIndex] = useState(2);
   const [sessionId] = useState(() => uuidv4());
   const [favoriteRestaurants, setFavoriteRestaurants] = useState<Set<string>>(new Set());
+  const { width, height } = useWindowDimensions();
+  const isMobile = width < 768; // Define mobile breakpoint
 
   // Helper function to get photo URL consistently
   const getRestaurantPhotoUrl = (restaurant: Restaurant) => {
@@ -335,7 +337,10 @@ export function BattleView({
       {error ? (
         <Text style={styles.errorText}>{error}</Text>
       ) : (
-        <View style={styles.cardsContainer}>
+        <View style={[
+          styles.cardsContainer,
+          isMobile ? styles.mobileCardsContainer : styles.desktopCardsContainer
+        ]}>
           <TouchableOpacity
             onPress={() => handleCardClick("left")}
             style={styles.cardContainer}
@@ -383,17 +388,22 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: "10%",
+    marginTop: "5%",
     marginBottom: 80,
     backgroundColor: '#d2aeed',
     paddingHorizontal: 20,
   },
   cardsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
     width: "100%",
-    gap: 150,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: "row",
+  },
+  desktopCardsContainer: {
+    gap: 20,
+  },
+  mobileCardsContainer: {
+    gap: 10,
   },
   cardContainer: {
     alignItems: 'center',

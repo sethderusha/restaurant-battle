@@ -1,5 +1,5 @@
 import React, {useState, useRef, useEffect} from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Linking, Clipboard, Animated } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Linking, Clipboard, Animated, useWindowDimensions } from 'react-native';
 // import './Card.css';
 //Card components:
     //Name
@@ -29,6 +29,9 @@ export function Card({
     onFavoriteToggle,
     isFavorite: initialIsFavorite = false
 }: CardProps) {
+    const { width } = useWindowDimensions();
+    const isMobile = width < 768;
+    
     const handleTitlePress = () => {
         const url = `https://www.google.com/maps/place/?q=place_id:${place_id}`;
         Linking.openURL(url).catch((err) => console.error('Error opening Maps:', err));
@@ -150,9 +153,15 @@ export function Card({
     };
 
     return (
-        <View style={styles.card}>
+        <View style={[
+            styles.card,
+            isMobile ? styles.mobileCard : styles.desktopCard
+        ]}>
             <TouchableOpacity onPress={handleTitlePress} style={styles.titleContainer}>
-                <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.5}>{name}</Text>
+                <Text style={[
+                    styles.title,
+                    isMobile ? styles.mobileTitle : styles.desktopTitle
+                ]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.5}>{name}</Text>
             </TouchableOpacity>
             <View style={styles.contentContainer}>
                 <View style={[styles.imageContainer]}>
@@ -184,14 +193,20 @@ export function Card({
                         </Text>
                     )}
                 </View>
-                <View style={styles.iconContainer}>
+                <View style={[
+                    styles.iconContainer,
+                    isMobile ? styles.mobileIconContainer : styles.desktopIconContainer
+                ]}>
                     <View style={styles.favoriteContainer}>
                         <TouchableOpacity onPress={changeLike}>
                             <Image
                                 source={isFavorite 
                                     ? require('@/assets/images/like_selected.png') 
                                     : require('@/assets/images/like_unselected.png')}
-                                style={styles.icon}
+                                style={[
+                                    styles.icon,
+                                    isMobile ? styles.mobileIcon : styles.desktopIcon
+                                ]}
                             />
                         </TouchableOpacity>
                         {showFavoriteMessage && (
@@ -205,7 +220,10 @@ export function Card({
                             <TouchableOpacity onPress={handleShare}>
                                 <Image
                                     source={shareButton}
-                                    style={styles.icon}
+                                    style={[
+                                        styles.icon,
+                                        isMobile ? styles.mobileIcon : styles.desktopIcon
+                                    ]}
                                 />
                             </TouchableOpacity>
                         </Animated.View>
@@ -224,10 +242,16 @@ const styles = StyleSheet.create({
         borderWidth: 5,
         borderColor: 'white',
         borderRadius: 20,
-        width: 350,
-        height: 500,
         backgroundColor: '#3C6E71',
         boxShadow: '10px 10px rgba(0,0,0,0.25)'
+    },
+    desktopCard: {
+        width: 350,
+        height: 500,
+    },
+    mobileCard: {
+        width: 250,
+        height: 450,
     },
     titleContainer: {
         backgroundColor: '#284B63',
@@ -242,8 +266,13 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontFamily: 'SmileySans',
         textAlign: 'center',
-        fontSize: 32,
         lineHeight: 36,
+    },
+    desktopTitle: {
+        fontSize: 32,
+    },
+    mobileTitle: {
+        fontSize: 24,
     },
     contentContainer: {
         flex: 1,
@@ -286,11 +315,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 10,
         marginTop: 'auto',
+    },
+    desktopIconContainer: {
         height: 60,
+    },
+    mobileIconContainer: {
+        height: 50,
+        paddingHorizontal: 5,
+        marginTop: 5,
+        marginBottom: 10,
     },
     icon: {
         width: 45,
         height: 45,
+    },
+    desktopIcon: {
+        width: 45,
+        height: 45,
+    },
+    mobileIcon: {
+        width: 30,
+        height: 30,
     },
     favoriteContainer: {
         position: 'relative',
