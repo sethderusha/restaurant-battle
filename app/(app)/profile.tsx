@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Restaurant from '@/models/Restaurant';
 import { API_URL } from '@/config';
 import { getPhotoUrl } from '@/api/api';
+import { GoogleMapView } from '@/components/GoogleMapView';
 
 const PROFILE_PICTURES = [
   { id: 'burger', name: 'Burger', source: require('@/assets/images/pfps/burger.png') },
@@ -43,6 +44,7 @@ export default function ProfileScreen() {
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const [selectedFavorite, setSelectedFavorite] = useState<Restaurant | null>(null);
+  const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
 
   // Load favorites and playlists when the screen is focused
   useFocusEffect(
@@ -50,12 +52,6 @@ export default function ProfileScreen() {
       const loadData = async () => {
         if (!user) {
           console.log('❌ Cannot load data: No user logged in');
-          return;
-        }
-
-        // Only load data if it hasn't been loaded yet or if we're refreshing
-        if (dataLoaded && !refreshing) {
-          console.log('✅ Data already loaded, skipping fetch');
           return;
         }
 
@@ -93,9 +89,6 @@ export default function ProfileScreen() {
 
           const playlistsData = await playlistsResponse.json();
           setPlaylists(playlistsData.playlists || []);
-          
-          // Mark data as loaded
-          setDataLoaded(true);
         } catch (err) {
           console.error('❌ Error loading data:', err);
           setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -107,7 +100,7 @@ export default function ProfileScreen() {
       };
 
       loadData();
-    }, [user, refreshing, dataLoaded])
+    }, [user, refreshing])
   );
 
   const handleSelectPlaylist = useCallback(async (playlist: any) => {
@@ -211,7 +204,7 @@ export default function ProfileScreen() {
     return (
       <View style={styles.playlistItemsList}>
         {playlistItems.map((restaurant) => (
-          <View key={restaurant.place_id} style={styles.playlistItemContainer}>
+          <View key={restaurant.place_id} style={styles.favoriteItemContainer}>
             <TouchableOpacity
               style={styles.favoriteItem}
               onPress={() => {
@@ -562,6 +555,10 @@ export default function ProfileScreen() {
   // Memoize the profile picture to prevent unnecessary re-renders
   const profilePicture = useMemo(() => getProfilePicture(), [getProfilePicture]);
 
+  // Determine which restaurants to display on the map:
+  // If a playlist is selected, show its items; otherwise, show all favorites.
+  const mapFavorites = selectedPlaylist ? playlistItems : favorites;
+
   return (
     <ScrollView 
       style={styles.container}
@@ -608,6 +605,85 @@ export default function ProfileScreen() {
         </View>
         {renderPlaylists()}
       </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Map</Text>
+          {playlists && playlists.length > 0 && (
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => setShowPlaylistDropdown(true)}
+            >
+              <Text style={styles.filterButtonText}>
+                {selectedPlaylist ? selectedPlaylist.name : 'All Favorites'}
+              </Text>
+              <Ionicons name="filter" size={16} color="#fff" style={styles.filterIcon} />
+            </TouchableOpacity>
+          )}
+        </View>
+        
+        <GoogleMapView items={mapFavorites} />
+      </View>
+
+      {/* Playlist Filter Modal */}
+      <Modal
+        visible={showPlaylistDropdown}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowPlaylistDropdown(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowPlaylistDropdown(false)}
+        >
+          <View style={styles.filterModalContainer}>
+            <View style={styles.filterModalHeader}>
+              <Text style={styles.filterModalTitle}>Filter Map</Text>
+              <TouchableOpacity onPress={() => setShowPlaylistDropdown(false)}>
+                <Ionicons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.filterModalContent}>
+              <TouchableOpacity
+                style={[
+                  styles.filterModalItem,
+                  !selectedPlaylist && styles.activeFilterModalItem
+                ]}
+                onPress={() => {
+                  setSelectedPlaylist(null);
+                  setShowPlaylistDropdown(false);
+                }}
+              >
+                <Text style={styles.filterModalItemText}>All Favorites</Text>
+                {!selectedPlaylist && (
+                  <Ionicons name="checkmark" size={20} color="#fff" />
+                )}
+              </TouchableOpacity>
+              
+              {playlists.map((playlist) => (
+                <TouchableOpacity
+                  key={playlist.id}
+                  style={[
+                    styles.filterModalItem,
+                    selectedPlaylist?.id === playlist.id && styles.activeFilterModalItem
+                  ]}
+                  onPress={() => {
+                    handleSelectPlaylist(playlist);
+                    setShowPlaylistDropdown(false);
+                  }}
+                >
+                  <Text style={styles.filterModalItemText}>{playlist.name}</Text>
+                  {selectedPlaylist?.id === playlist.id && (
+                    <Ionicons name="checkmark" size={20} color="#fff" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <TouchableOpacity
         style={[styles.button, styles.logoutButton]}
@@ -885,6 +961,35 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  filterContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  filterButton: {
+    backgroundColor: '#444',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minWidth: 120,
+  },
+  filterButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  filterIcon: {
+    marginLeft: 4,
+  },
+  activeFilterButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
   container: {
     flex: 1,
     backgroundColor: '#d2aeed',
@@ -968,22 +1073,22 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   emptyText: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#888',
     fontSize: 16,
     textAlign: 'center',
-    marginTop: 10,
+    marginTop: 20,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#d2aeed',
-    borderRadius: 20,
+    backgroundColor: '#222',
+    borderRadius: 10,
     padding: 20,
-    width: '90%',
+    width: '80%',
     maxHeight: '80%',
   },
   modalHeader: {
@@ -993,9 +1098,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 20,
-    fontFamily: 'SmileySans',
     color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
   form: {
     gap: 10,
@@ -1147,15 +1253,6 @@ const styles = StyleSheet.create({
   },
   playlistItemsList: {
     marginTop: 10,
-    marginLeft: 10,
-    borderLeftWidth: 2,
-    borderLeftColor: 'rgba(255, 255, 255, 0.2)',
-    paddingLeft: 10,
-  },
-  playlistItemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
   },
   removeButton: {
     padding: 10,
@@ -1211,5 +1308,59 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontFamily: 'SmileySans',
+  },
+  mapContainer: {
+    marginTop: 20,
+    padding: 20,
+  },
+  mapTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontFamily: 'SmileySans',
+    marginBottom: 15,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterModalContainer: {
+    backgroundColor: '#333',
+    borderRadius: 10,
+    width: '80%',
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  filterModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  filterModalTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  filterModalContent: {
+    padding: 10,
+  },
+  filterModalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  activeFilterModalItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  filterModalItemText: {
+    color: '#fff',
+    fontSize: 16,
   },
 }); 

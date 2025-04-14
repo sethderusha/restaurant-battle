@@ -45,6 +45,8 @@ def init_db():
                     address TEXT,
                     rating REAL,
                     price INTEGER,
+                    lat REAL,
+                    lng REAL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users (id),
                     UNIQUE(user_id, place_id)
@@ -73,6 +75,8 @@ def init_db():
                     address TEXT,
                     rating REAL,
                     price INTEGER,
+                    lat REAL,
+                    lng REAL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (playlist_id) REFERENCES playlists (id),
                     UNIQUE(playlist_id, place_id)
@@ -168,8 +172,8 @@ def add_favorite(user_id, restaurant_data):
             c = conn.cursor()
             c.execute('''
                 INSERT INTO favorites 
-                (user_id, place_id, name, picture, address, rating, price)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (user_id, place_id, name, picture, address, rating, price, lat, lng)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 user_id,
                 restaurant_data['place_id'],
@@ -177,7 +181,9 @@ def add_favorite(user_id, restaurant_data):
                 restaurant_data.get('picture', None),
                 restaurant_data.get('address', None),
                 restaurant_data.get('rating', None),
-                restaurant_data.get('price', None)
+                restaurant_data.get('price', None),
+                restaurant_data.get('lat', None),
+                restaurant_data.get('lng', None)
             ))
             conn.commit()
             return True
@@ -212,7 +218,7 @@ def get_user_favorites(user_id):
         try:
             c = conn.cursor()
             c.execute('''
-                SELECT place_id, name, picture, address, rating, price
+                SELECT place_id, name, picture, address, rating, price, lat, lng
                 FROM favorites
                 WHERE user_id = ?
                 ORDER BY created_at DESC
@@ -225,7 +231,9 @@ def get_user_favorites(user_id):
                     'picture': row[2],
                     'address': row[3],
                     'rating': row[4],
-                    'price': row[5]
+                    'price': row[5],
+                    'lat': row[6],
+                    'lng': row[7]
                 })
             return favorites
         finally:
@@ -279,7 +287,7 @@ def get_playlist_items(playlist_id):
         try:
             c = conn.cursor()
             c.execute('''
-                SELECT place_id, name, picture, address, rating, price
+                SELECT place_id, name, picture, address, rating, price, lat, lng
                 FROM playlist_items
                 WHERE playlist_id = ?
                 ORDER BY created_at DESC
@@ -292,7 +300,9 @@ def get_playlist_items(playlist_id):
                     'picture': row[2],
                     'address': row[3],
                     'rating': row[4],
-                    'price': row[5]
+                    'price': row[5],
+                    'lat': row[6],
+                    'lng': row[7]
                 })
             return items
         finally:
@@ -306,8 +316,8 @@ def add_to_playlist(playlist_id, restaurant_data):
             c = conn.cursor()
             c.execute('''
                 INSERT INTO playlist_items 
-                (playlist_id, place_id, name, picture, address, rating, price)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (playlist_id, place_id, name, picture, address, rating, price, lat, lng)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 playlist_id,
                 restaurant_data['place_id'],
@@ -315,7 +325,9 @@ def add_to_playlist(playlist_id, restaurant_data):
                 restaurant_data.get('picture', None),
                 restaurant_data.get('address', None),
                 restaurant_data.get('rating', None),
-                restaurant_data.get('price', None)
+                restaurant_data.get('price', None),
+                restaurant_data.get('lat', None),
+                restaurant_data.get('lng', None)
             ))
             conn.commit()
             return True

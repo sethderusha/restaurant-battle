@@ -672,6 +672,14 @@ def add_manual_favorite(current_user):
         print(f"❌ Exception in add_manual_favorite: {str(e)}")
         return jsonify({'error': f'Failed to process request: {str(e)}'}), 500
 
+@app.route('/api/config/google-api-key', methods=['GET'])
+def get_google_api_key():
+    """Return the Google API key from environment variables"""
+    api_key = os.environ.get('GOOGLE_API_KEY')
+    if not api_key:
+        return jsonify({'error': 'Google API key not configured'}), 500
+    return jsonify({'apiKey': api_key})
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=True)

@@ -231,6 +231,8 @@ class User {
           address: fav.address,
           rating: fav.rating,
           price_level: fav.price,
+          lat: fav.lat,
+          lng: fav.lng,
           // Keep the original picture value (could be a photo reference or full URL)
           picture: fav.picture,
           // If it's a photo reference, add it to photos array
@@ -258,7 +260,9 @@ class User {
         picture: restaurant.photos?.[0]?.photo_reference || restaurant.picture || null,
         address: restaurant.vicinity || restaurant.address || null,
         rating: restaurant.rating || null,
-        price: restaurant.price_level || restaurant.price || null
+        price: restaurant.price_level || restaurant.price || null,
+        lat: restaurant.location?.latitude || restaurant.lat || restaurant.latitude || null,
+        lng: restaurant.location?.longitude || restaurant.lng || restaurant.longitude || null
       };
       
       const url = `${API_URL}/favorites`;
@@ -419,7 +423,19 @@ class User {
       }
 
       const data = await response.json();
-      return data.items;
+      return (data.items || []).map(item => ({
+        id: item.place_id,
+        place_id: item.place_id,
+        name: item.name,
+        vicinity: item.address,
+        address: item.address,
+        rating: item.rating,
+        price_level: item.price,
+        lat: item.lat,
+        lng: item.lng,
+        picture: item.picture,
+        photos: item.picture && !item.picture.startsWith('http') ? [{ photo_reference: item.picture }] : []
+      }));
     } catch (error) {
       console.error('Error fetching playlist items:', error);
       throw error;
@@ -428,13 +444,25 @@ class User {
 
   async addToPlaylist(playlistId, restaurant) {
     try {
+      // Prepare restaurant data with location information
+      const restaurantData = {
+        place_id: restaurant.place_id || restaurant.id,
+        name: restaurant.name,
+        picture: restaurant.picture,
+        address: restaurant.address || restaurant.vicinity,
+        rating: restaurant.rating,
+        price: restaurant.price_level,
+        lat: restaurant.lat || restaurant.location?.lat,
+        lng: restaurant.lng || restaurant.location?.lng
+      };
+
       const response = await fetch(`${API_URL}/playlists/${playlistId}/items`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.getToken()}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(restaurant),
+        body: JSON.stringify(restaurantData),
       });
 
       if (!response.ok) {
