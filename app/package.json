@@ -11,7 +11,8 @@
     "test": "node scripts/start.js --test",
     "lint": "expo lint",
     "setup": "node scripts/setup.js",
-    "run": "node scripts/start.js"
+    "run": "node scripts/start.js",
+    "build": "expo export:web"
   },
   "jest": {
     "preset": "jest-expo"
