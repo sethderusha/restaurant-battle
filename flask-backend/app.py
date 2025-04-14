@@ -34,7 +34,7 @@ load_dotenv()
 app = Flask(__name__)
 # Update CORS configuration to properly handle preflight requests
 CORS(app, resources={r"/api/*": {
-    "origins": ["http://localhost:8081", "http://localhost:3000", "http://localhost:5000", 
+    "origins": ["https://foodfight-d6b3.onrender.com", "http://localhost:8081", "http://localhost:3000", "http://localhost:5000", 
                 "http://localhost:19006", "http://localhost:19000", "http://localhost:19001"],
     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"],
