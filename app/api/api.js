@@ -77,7 +77,7 @@ const loadTestData = async () => {
   try {
     console.log('Loading test data...');
     // Directly require the test.json file
-    restaurantData = require('../test.json');
+    restaurantData = require('../../test.json');
     currentIndex = 0;
     console.log(`Loaded ${restaurantData.length} test restaurants`);
   } catch (error) {

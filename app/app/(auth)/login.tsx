@@ -1,42 +1,43 @@
 import React, { useState } from 'react';
-import { View, TextInput, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, TextInput, StyleSheet, Text, TouchableOpacity, Image } from 'react-native';
+import { Link, useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
 
-export default function Signup() {
+export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
-  const { signup, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
 
-  const handleSignup = async () => {
-    if (!username.trim() || !password.trim() || !displayName.trim()) {
+  const handleLogin = async () => {
+    if (!username.trim() || !password.trim()) {
       setError('Please fill in all fields');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
       return;
     }
     
     setError('');
     try {
-      await signup(username.trim(), password.trim(), displayName.trim());
+      await login(username.trim(), password.trim());
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to create account');
+      setError(error instanceof Error ? error.message : 'Invalid username or password');
     }
   };
 
   return (
     <View style={styles.container}>
       {isLoading && (
-        <LoadingOverlay message="Setting up your account..." />
+        <LoadingOverlay message="Logging in..." />
       )}
-      <Text style={styles.title}>Create Account</Text>
+      <View style={styles.logoContainer}>
+        <Image 
+          source={require('@/assets/images/food-fight-logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
+      <Text style={styles.title}>Welcome Back</Text>
       <View style={styles.form}>
         <TextInput
           style={styles.input}
@@ -57,27 +58,20 @@ export default function Signup() {
           autoCorrect={false}
           editable={!isLoading}
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Display Name"
-          value={displayName}
-          onChangeText={setDisplayName}
-          editable={!isLoading}
-        />
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <TouchableOpacity 
           style={[styles.button, isLoading && styles.buttonDisabled]}
-          onPress={handleSignup}
+          onPress={handleLogin}
           disabled={isLoading}
         >
-          <Text style={styles.buttonText}>Sign Up</Text>
+          <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          onPress={() => router.push('/login')}
+          onPress={() => router.push('/signup')}
           style={styles.linkButton}
           disabled={isLoading}
         >
-          <Text style={styles.linkText}>Already have an account? Login</Text>
+          <Text style={styles.linkText}>Don't have an account? Sign up</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -90,6 +84,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
     backgroundColor: '#d2aeed',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logo: {
+    height: 360,
+    width: '100%',
   },
   title: {
     fontSize: 32,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Image, Linking, RefreshControl, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
-import { router, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Restaurant from '@/models/Restaurant';
 import { API_URL } from '@/config';

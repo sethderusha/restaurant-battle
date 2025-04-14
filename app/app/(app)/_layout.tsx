@@ -54,7 +54,7 @@ export default function AppLayout() {
         name="index"
         options={{
           title: 'Restaurants',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="restaurant" size={size} color={color} />
           ),
         }}
@@ -63,7 +63,7 @@ export default function AppLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="person" size={size} color={color} />
           ),
         }}
