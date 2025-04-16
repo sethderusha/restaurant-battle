@@ -163,8 +163,14 @@ export function Card({
                     isMobile ? styles.mobileTitle : styles.desktopTitle
                 ]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.5}>{name}</Text>
             </TouchableOpacity>
-            <View style={styles.contentContainer}>
-                <View style={[styles.imageContainer]}>
+            <View style={[
+                styles.contentContainer,
+                isMobile? styles.mobileContentContainer:styles.desktopContentContainer
+                ]}>
+                <View style={[
+                    styles.imageContainer,
+                    isMobile? styles.mobileImageContainer : styles.desktopImageContainer
+                ]}>
                     <Image 
                         source={image ? { uri: image } : require('@/assets/images/food-fight-logo.png')}
                         style={styles.image}
@@ -250,8 +256,8 @@ const styles = StyleSheet.create({
         height: 500,
     },
     mobileCard: {
-        width: 250,
-        height: 450,
+        width: 500,
+        height: 275,
     },
     titleContainer: {
         backgroundColor: '#284B63',
@@ -278,12 +284,25 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 15,
     },
+    mobileContentContainer: {
+        flexDirection: 'row'
+    },
+    desktopContentContainer: {
+        flexDirection: 'column'
+    },
     imageContainer: {
         width: '100%',
         height: 160,
         borderRadius: 15,
         overflow: 'hidden',
         marginBottom: 10,
+    },
+    mobileImageContainer: {
+        width: '50%',
+        height: 'auto',
+    },
+    desktopImageContainer: {
+        width: '100%'
     },
     image: {
         width: '100%',
@@ -320,6 +339,7 @@ const styles = StyleSheet.create({
         height: 60,
     },
     mobileIconContainer: {
+        flexDirection:'column',
         height: 50,
         paddingHorizontal: 5,
         marginTop: 5,

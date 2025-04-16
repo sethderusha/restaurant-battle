@@ -26,8 +26,8 @@ export function BattleView({
   const [currentIndex, setCurrentIndex] = useState(2);
   const [sessionId] = useState(() => uuidv4());
   const [favoriteRestaurants, setFavoriteRestaurants] = useState<Set<string>>(new Set());
-  const { width, height } = useWindowDimensions();
-  const isMobile = width < 768; // Define mobile breakpoint
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
 
   // Helper function to get photo URL consistently
   const getRestaurantPhotoUrl = (restaurant: Restaurant) => {
@@ -337,10 +337,7 @@ export function BattleView({
       {error ? (
         <Text style={styles.errorText}>{error}</Text>
       ) : (
-        <View style={[
-          styles.cardsContainer,
-          isMobile ? styles.mobileCardsContainer : styles.desktopCardsContainer
-        ]}>
+        <View style={[styles.cardsContainer, isMobile? styles.mobileCardsContainer : styles.desktopCardsContainer]}>
           <TouchableOpacity
             onPress={() => handleCardClick("left")}
             style={styles.cardContainer}
@@ -384,30 +381,32 @@ export function BattleView({
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { //background
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: "5%",
-    marginBottom: 80,
+    marginBottom: 60,
     backgroundColor: '#d2aeed',
     paddingHorizontal: 20,
   },
-  cardsContainer: {
+  cardsContainer: { //holds 2 cards
     width: "100%",
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: "row",
+    gap: 30,
   },
   desktopCardsContainer: {
-    gap: 20,
+    flexDirection: "row",
   },
   mobileCardsContainer: {
-    gap: 10,
+    flexDirection: 'column',
+    gap:20,
   },
   cardContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 60,
   },
   errorText: {
     color: "red",
