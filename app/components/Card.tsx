@@ -1,9 +1,11 @@
 import React, {useState, useRef, useEffect} from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Linking, Clipboard, Animated, useWindowDimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Linking, Clipboard, Animated, useWindowDimensions, Dimensions } from 'react-native';
 // import './Card.css';
 //Card components:
     //Name
     //Source Image
+
+const {height: viewHeight} = Dimensions.get('window');
 
 export type CardProps = {
     name: string;
@@ -29,7 +31,7 @@ export function Card({
     onFavoriteToggle,
     isFavorite: initialIsFavorite = false
 }: CardProps) {
-    const { width } = useWindowDimensions();
+    const {width} = useWindowDimensions();
     const isMobile = width < 768;
     
     const handleTitlePress = () => {
@@ -257,7 +259,7 @@ const styles = StyleSheet.create({
     },
     mobileCard: {
         width: '100%',
-        minHeight: 230,
+        height: viewHeight * 0.35,
     },
     titleContainer: {
         backgroundColor: '#284B63',
