@@ -185,7 +185,7 @@ export function Card({
                     )}
                     {rating && (
                         <Text style={styles.detailText}>
-                            ⭐ {renderStars()} ({rating})
+                            {renderStars()} ({rating})
                         </Text>
                     )}
                     {price_level && (
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     },
     mobileCard: {
         width: '100%',
-        height: 260,
+        minHeight: 230,
     },
     titleContainer: {
         backgroundColor: '#284B63',
@@ -283,6 +283,7 @@ const styles = StyleSheet.create({
     contentContainer: {
         flex: 1,
         padding: 15,
+        justifyContent: 'space-between',
     },
     mobileContentContainer: {
         flexDirection: 'row'
