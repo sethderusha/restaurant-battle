@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
         height: 500,
     },
     mobileCard: {
-        width: 500,
+        width: '100%',
         height: 275,
     },
     titleContainer: {

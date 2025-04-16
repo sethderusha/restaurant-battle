@@ -340,7 +340,7 @@ export function BattleView({
         <View style={[styles.cardsContainer, isMobile? styles.mobileCardsContainer : styles.desktopCardsContainer]}>
           <TouchableOpacity
             onPress={() => handleCardClick("left")}
-            style={styles.cardContainer}
+            style={[styles.cardsContainer, isMobile? styles.mobileCardsContainer : styles.desktopCardsContainer]}
             activeOpacity={0.7}
           >
             <Card 
@@ -358,7 +358,7 @@ export function BattleView({
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleCardClick("right")}
-            style={styles.cardContainer}
+            style={[styles.cardsContainer, isMobile? styles.mobileCardsContainer : styles.desktopCardsContainer]}
             activeOpacity={0.7}
           >
             <Card 
@@ -391,22 +391,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   cardsContainer: { //holds 2 cards
-    width: "100%",
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 30,
   },
   desktopCardsContainer: {
     flexDirection: "row",
+    gap: 60,
   },
   mobileCardsContainer: {
+    width: "100%",
     flexDirection: 'column',
     gap:20,
   },
   cardContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 60,
   },
   errorText: {
     color: "red",
