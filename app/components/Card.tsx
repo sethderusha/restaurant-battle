@@ -177,7 +177,7 @@ export function Card({
                         resizeMode="cover"
                     />
                 </View>
-                <View style={styles.detailsContainer}>
+                <View style={[styles.detailsContainer, isMobile? styles.mobileDetailsContainer : styles.desktopDetailsContainer]}>
                     {vicinity && (
                         <Text style={styles.detailText} numberOfLines={1}>
                             📍 {vicinity}
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     },
     mobileCard: {
         width: '100%',
-        height: 275,
+        height: 260,
     },
     titleContainer: {
         backgroundColor: '#284B63',
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     mobileImageContainer: {
-        width: '50%',
+        width: '40%',
         height: 'auto',
     },
     desktopImageContainer: {
@@ -316,6 +316,12 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         minHeight: 100,
     },
+    mobileDetailsContainer: {
+        width: '40%',
+    },
+    desktopDetailsContainer: {
+        width: '100%'
+    },
     detailText: {
         color: '#FFFFFF',
         fontSize: 15,
@@ -329,6 +335,7 @@ const styles = StyleSheet.create({
         color: '#F44336',
     },
     iconContainer: {
+        width: '10%',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
