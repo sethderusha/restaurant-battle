@@ -103,6 +103,24 @@ export function BattleView({
     try {
       console.log('🔄 Toggling favorite:', { place_id, isFavorite });
       
+      // Update the local state immediately for a responsive UI
+      setFavoriteRestaurants(prev => {
+        const newSet = new Set(prev);
+        if (isFavorite) {
+          newSet.add(place_id);
+        } else {
+          newSet.delete(place_id);
+        }
+        return newSet;
+      });
+      
+      // Update the card state directly
+      if (place_id === leftCard.place_id) {
+        setLeftCard(prev => ({...prev, isFavorite}));
+      } else if (place_id === rightCard.place_id) {
+        setRightCard(prev => ({...prev, isFavorite}));
+      }
+      
       if (isFavorite) {
         // Get the restaurant data from the current card
         const currentCard = place_id === leftCard.place_id ? leftCard : rightCard;
@@ -110,38 +128,32 @@ export function BattleView({
         
         if (currentCard.restaurant) {
           console.log('➕ Adding favorite:', currentCard.restaurant.name);
-          const result = await user.addFavorite(currentCard.restaurant);
-          console.log('✅ Add favorite API response:', result);
-          
-          // Refresh the favorites list
-          const updatedFavorites = await user.getFavorites();
-          console.log('✅ Favorites updated after adding:', updatedFavorites);
-          
-          // Update the local state
-          setFavoriteRestaurants(prev => {
-            const newSet = new Set(prev);
-            newSet.add(place_id);
-            return newSet;
-          });
+          await user.addFavorite(currentCard.restaurant);
         }
       } else {
         console.log('➖ Removing favorite:', place_id);
-        const result = await user.removeFavorite(place_id);
-        console.log('✅ Remove favorite API response:', result);
-        
-        // Refresh the favorites list
-        const updatedFavorites = await user.getFavorites();
-        console.log('✅ Favorites updated after removing:', updatedFavorites);
-        
-        // Update the local state
-        setFavoriteRestaurants(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(place_id);
-          return newSet;
-        });
+        await user.removeFavorite(place_id);
       }
     } catch (error) {
       console.error("❌ Error toggling favorite:", error);
+      
+      // Revert the local state if the API call fails
+      setFavoriteRestaurants(prev => {
+        const newSet = new Set(prev);
+        if (isFavorite) {
+          newSet.delete(place_id);
+        } else {
+          newSet.add(place_id);
+        }
+        return newSet;
+      });
+      
+      // Revert the card state
+      if (place_id === leftCard.place_id) {
+        setLeftCard(prev => ({...prev, isFavorite: !isFavorite}));
+      } else if (place_id === rightCard.place_id) {
+        setRightCard(prev => ({...prev, isFavorite: !isFavorite}));
+      }
     }
   };
 
@@ -438,7 +450,7 @@ export function BattleView({
             activeOpacity={0.7}
           >
             <Card 
-              key={`left-${leftCard.place_id}-${leftCard.isFavorite}`}
+              key={`left-${leftCard.place_id}`}
               name={leftCard.name} 
               image={leftCard.image} 
               place_id={leftCard.place_id}
@@ -456,7 +468,7 @@ export function BattleView({
             activeOpacity={0.7}
           >
             <Card 
-              key={`right-${rightCard.place_id}-${rightCard.isFavorite}`}
+              key={`right-${rightCard.place_id}`}
               name={rightCard.name} 
               image={rightCard.image} 
               place_id={rightCard.place_id}

@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useState, useRef, useEffect, memo} from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Linking, Clipboard, Animated, useWindowDimensions, Dimensions } from 'react-native';
 // import './Card.css';
 //Card components:
@@ -20,7 +20,8 @@ export type CardProps = {
     restaurant?: any; // Add the restaurant property
 }
 
-export function Card({ 
+// Create a memoized version of the Card component
+export const Card = memo(function Card({ 
     name, 
     image, 
     place_id, 
@@ -43,11 +44,6 @@ export function Card({
     const prevIsFavoriteRef = useRef(initialIsFavorite);
     
     const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
-    const [likeButton, clickLike] = useState(
-        initialIsFavorite 
-            ? require('@/assets/images/like_selected.png') 
-            : require('@/assets/images/like_unselected.png')
-    );
     const [shareButton, setShareButton] = useState(require('@/assets/images/save_unselected.png'));
     const [showClipboardMessage, setShowClipboardMessage] = useState(false);
     const [showFavoriteMessage, setShowFavoriteMessage] = useState(false);
@@ -59,11 +55,6 @@ export function Card({
         if (prevIsFavoriteRef.current !== initialIsFavorite) {
             console.log(`Updating favorite state for ${name}: ${initialIsFavorite}`);
             setIsFavorite(initialIsFavorite);
-            clickLike(
-                initialIsFavorite 
-                    ? require('@/assets/images/like_selected.png') 
-                    : require('@/assets/images/like_unselected.png')
-            );
             prevIsFavoriteRef.current = initialIsFavorite;
         }
     }, [initialIsFavorite, name]);
@@ -72,22 +63,12 @@ export function Card({
     useEffect(() => {
         console.log(`Card mounted for ${name}, initialIsFavorite: ${initialIsFavorite}`);
         setIsFavorite(initialIsFavorite);
-        clickLike(
-            initialIsFavorite 
-                ? require('@/assets/images/like_selected.png') 
-                : require('@/assets/images/like_unselected.png')
-        );
         prevIsFavoriteRef.current = initialIsFavorite;
     }, []);
 
     const changeLike = () => {
         const newFavoriteState = !isFavorite;
         setIsFavorite(newFavoriteState);
-        clickLike(
-            newFavoriteState 
-                ? require('@/assets/images/like_selected.png') 
-                : require('@/assets/images/like_unselected.png')
-        );
         
         // Call the onFavoriteToggle callback if provided
         if (onFavoriteToggle) {
@@ -243,7 +224,7 @@ export function Card({
             </View>
         </View>
     );
-}
+});
 
 const styles = StyleSheet.create({
     card: {
