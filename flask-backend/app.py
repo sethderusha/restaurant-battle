@@ -253,7 +253,7 @@ def get_nearby_restaurants():
 
         restaurants_cache[session_id] = {
             "all": restaurants,
-            "index": 1,
+            "index": 2,
             "next_page_token": next_page_token,
             "last_fetch_size": len(restaurants),
             "is_fetching": False
