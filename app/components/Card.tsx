@@ -53,7 +53,6 @@ export const Card = memo(function Card({
     useEffect(() => {
         // Only update if the value has actually changed
         if (prevIsFavoriteRef.current !== initialIsFavorite) {
-            console.log(`Updating favorite state for ${name}: ${initialIsFavorite}`);
             setIsFavorite(initialIsFavorite);
             prevIsFavoriteRef.current = initialIsFavorite;
         }
@@ -61,7 +60,6 @@ export const Card = memo(function Card({
 
     // Force update the favorite state when the component mounts
     useEffect(() => {
-        console.log(`Card mounted for ${name}, initialIsFavorite: ${initialIsFavorite}`);
         setIsFavorite(initialIsFavorite);
         prevIsFavoriteRef.current = initialIsFavorite;
     }, []);

@@ -42,21 +42,16 @@ export function BattleView({
     const loadFavorites = async () => {
       if (user) {
         try {
-          console.log("Loading favorites for user...");
           const favorites = await user.getFavorites();
-          console.log("Favorites loaded:", favorites);
           const favoriteIds = new Set<string>(favorites.map((fav: Restaurant) => fav.id));
-          console.log("Favorite IDs:", Array.from(favoriteIds));
           setFavoriteRestaurants(favoriteIds);
           
           // Update the favorite state of current cards if they exist
           if (leftCard.place_id && favoriteIds.has(leftCard.place_id)) {
-            console.log(`Setting left card ${leftCard.name} as favorite`);
             setLeftCard(prev => ({...prev, isFavorite: true}));
           }
           
           if (rightCard.place_id && favoriteIds.has(rightCard.place_id)) {
-            console.log(`Setting right card ${rightCard.name} as favorite`);
             setRightCard(prev => ({...prev, isFavorite: true}));
           }
         } catch (error) {
@@ -70,12 +65,10 @@ export function BattleView({
 
   // Add a new effect to update card favorite states when favoriteRestaurants changes
   useEffect(() => {
-    console.log("favoriteRestaurants changed:", Array.from(favoriteRestaurants));
     
     // Update left card favorite state
     if (leftCard.place_id) {
       const isFavorite = favoriteRestaurants.has(leftCard.place_id);
-      console.log(`Left card ${leftCard.name} favorite state: ${isFavorite}`);
       if (leftCard.isFavorite !== isFavorite) {
         setLeftCard(prev => ({...prev, isFavorite}));
       }
@@ -84,7 +77,6 @@ export function BattleView({
     // Update right card favorite state
     if (rightCard.place_id) {
       const isFavorite = favoriteRestaurants.has(rightCard.place_id);
-      console.log(`Right card ${rightCard.name} favorite state: ${isFavorite}`);
       if (rightCard.isFavorite !== isFavorite) {
         setRightCard(prev => ({...prev, isFavorite}));
       }
@@ -93,7 +85,6 @@ export function BattleView({
 
   // Handle toggling favorites
   const handleFavoriteToggle = async (place_id: string, isFavorite: boolean) => {
-    console.log('🎯 handleFavoriteToggle called with:', { place_id, isFavorite });
     
     if (!user) {
       console.error("No user logged in");
@@ -101,7 +92,6 @@ export function BattleView({
     }
 
     try {
-      console.log('🔄 Toggling favorite:', { place_id, isFavorite });
       
       // Update the local state immediately for a responsive UI
       setFavoriteRestaurants(prev => {
@@ -124,14 +114,11 @@ export function BattleView({
       if (isFavorite) {
         // Get the restaurant data from the current card
         const currentCard = place_id === leftCard.place_id ? leftCard : rightCard;
-        console.log('📍 Current card:', currentCard);
         
         if (currentCard.restaurant) {
-          console.log('➕ Adding favorite:', currentCard.restaurant.name);
           await user.addFavorite(currentCard.restaurant);
         }
       } else {
-        console.log('➖ Removing favorite:', place_id);
         await user.removeFavorite(place_id);
       }
     } catch (error) {
@@ -159,7 +146,6 @@ export function BattleView({
 
   const getNext = async (side: "left" | "right") => {
     try {
-      console.log(`Getting next restaurant for ${side} card. Current index: ${currentIndex}, Total restaurants: ${restaurants.length}`);
       
       // Store the current index in a local variable to avoid race conditions
       const currentIndexValue = currentIndex;
@@ -167,7 +153,6 @@ export function BattleView({
       if (currentIndexValue < restaurants.length) {
         const nextRestaurant = restaurants[currentIndexValue];
         const isFavorite = favoriteRestaurants.has(nextRestaurant.id);
-        console.log(`Creating next card for ${nextRestaurant.name}, isFavorite: ${isFavorite}, index: ${currentIndexValue}`);
         
         const nextCard: CardProps = {
           name: nextRestaurant.name,
@@ -184,21 +169,16 @@ export function BattleView({
 
         // When clicking left card, update right card and vice versa
         if (side === 'left') {
-          console.log(`Updating right card with ${nextRestaurant.name}`);
           setRightCard(nextCard);
         } else {
-          console.log(`Updating left card with ${nextRestaurant.name}`);
           setLeftCard(nextCard);
         }
         
         // Increment the index after updating the card
         setCurrentIndex(currentIndexValue + 1);
-        console.log(`Incrementing index from ${currentIndexValue} to ${currentIndexValue + 1}`);
       } else {
-        console.log("Getting next restaurant with session:", sessionId);
         try {
           const nextRestaurant = await getNextRestaurant(sessionId);
-          console.log("API response:", nextRestaurant);
           
           if (!nextRestaurant || !nextRestaurant.restaurant) {
             console.error("Invalid API response:", nextRestaurant);
@@ -210,14 +190,12 @@ export function BattleView({
           const isAlreadyInCache = restaurants.some(r => r.id === restaurantId);
           
           if (isAlreadyInCache) {
-            console.log(`Restaurant ${restaurantId} is already in cache, skipping`);
             // Try again with the next restaurant
             return getNext(side);
           }
           
           const nextRestaurantObject = new Restaurant(nextRestaurant.restaurant);
           const isFavorite = favoriteRestaurants.has(nextRestaurantObject.id);
-          console.log(`Creating next card for ${nextRestaurantObject.name}, isFavorite: ${isFavorite}`);
           
           // Add the new restaurant to our cache
           setRestaurants(prevRestaurants => [...prevRestaurants, nextRestaurantObject]);
@@ -237,16 +215,13 @@ export function BattleView({
 
           // When clicking left card, update right card and vice versa
           if (side === 'left') {
-            console.log(`Updating right card with ${nextRestaurantObject.name}`);
             setRightCard(nextCard);
           } else {
-            console.log(`Updating left card with ${nextRestaurantObject.name}`);
             setLeftCard(nextCard);
           }
           
           // Update the current index to point to the next restaurant
           setCurrentIndex(restaurants.length + 1);
-          console.log(`Updated index to ${restaurants.length + 1}`);
         } catch (apiError) {
           console.error("Error fetching from API:", apiError);
           throw apiError;
@@ -259,7 +234,6 @@ export function BattleView({
   }
 
   const handleCardClick = (side: "left" | "right") => {
-    console.log(`Card clicked: ${side}`);
     try {
       getNext(side);
     } catch (error) {
@@ -297,8 +271,6 @@ export function BattleView({
       const firstIsFavorite = favoriteRestaurants.has(firstRestaurant.id);
       const secondIsFavorite = favoriteRestaurants.has(secondRestaurant.id);
       
-      console.log(`Setting initial cards: ${firstRestaurant.name} (isFavorite: ${firstIsFavorite}), ${secondRestaurant.name} (isFavorite: ${secondIsFavorite})`);
-
       setLeftCard({
         name: firstRestaurant.name,
         image: getRestaurantPhotoUrl(firstRestaurant),
@@ -339,14 +311,12 @@ export function BattleView({
       // If there's a logged in user, try to get their location
       if (user) {
         if (!user.hasInitializedLocation) {
-          console.log("Initializing user location...");
           try {
             const locationResult = await user.updateLocation();
             if (locationResult) {
               location = locationResult;
             } else {
               // Location fetch failed, show manual input
-              console.log("Location fetch failed, showing manual input");
               setShowManualLocation(true);
               setLoading(false);
               return;
@@ -367,7 +337,6 @@ export function BattleView({
         }
       } else {
         // No user, show error
-        console.log("No user logged in");
         setError("Please log in to use the app");
         setLoading(false);
         return;

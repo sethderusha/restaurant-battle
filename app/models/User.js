@@ -28,7 +28,6 @@ class User {
   // Static method to request location permissions
   static async requestLocationPermission() {
     try {
-      console.log("📱 Requesting location permissions...");
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         throw new Error('Location permission is required to use this app. Please enable location access in your device settings.');
@@ -57,7 +56,6 @@ class User {
         throw new Error('Location services are disabled. Please enable them in your device settings to use this app.');
       }
 
-      console.log("📡 Getting current location...");
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
         timeout: 15000,
@@ -67,7 +65,6 @@ class User {
         throw new Error('Could not get location coordinates. Please ensure you have a clear view of the sky and try again.');
       }
 
-      console.log("✅ Location retrieved successfully");
       return {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
@@ -76,7 +73,6 @@ class User {
       console.error("❌ Error getting location:", error.message);
 
       if (retryCount < 3) {
-        console.log(`🔄 Retrying... (Attempt ${retryCount + 1}/3)`);
         await new Promise(resolve => setTimeout(resolve, 2000));
         return User.getLocation(retryCount + 1);
       }
@@ -218,11 +214,8 @@ class User {
   // Favorites methods
   async getFavorites() {
     try {
-      console.log('🔍 Getting favorites for user:', this.username);
-      console.log('🔑 Using token:', this.token);
       
       const url = `${API_URL}/favorites`;
-      console.log('📡 Making GET request to:', url);
       
       const response = await fetch(url, {
         headers: {
@@ -230,9 +223,6 @@ class User {
         },
       });
 
-      console.log('📥 GET Response status:', response.status);
-      console.log('📥 GET Response headers:', JSON.stringify(Object.fromEntries([...response.headers]), null, 2));
-      
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         console.error('❌ GET Error response:', errorData);
@@ -240,7 +230,6 @@ class User {
       }
 
       const data = await response.json();
-      console.log('✅ GET Response data:', JSON.stringify(data, null, 2));
       
       // Transform the favorites data to match the Restaurant model structure
       this.favorites = data.favorites.map(fav => {
@@ -264,7 +253,6 @@ class User {
         };
       });
       
-      console.log('🔄 Transformed favorites:', JSON.stringify(this.favorites, null, 2));
       return this.favorites;
     } catch (error) {
       console.error('❌ Error in getFavorites:', error);
@@ -274,8 +262,6 @@ class User {
 
   async addFavorite(restaurant) {
     try {
-      console.log('➕ Adding favorite:', restaurant.name);
-      console.log('🔑 Using token:', this.token);
       
       // Transform the restaurant data to match the backend's expected structure
       const favoriteData = {
@@ -290,8 +276,6 @@ class User {
       };
       
       const url = `${API_URL}/favorites`;
-      console.log('📡 Making POST request to:', url);
-      console.log('📦 POST Request body:', JSON.stringify(favoriteData, null, 2));
       
       const response = await fetch(url, {
         method: 'POST',
@@ -302,8 +286,6 @@ class User {
         body: JSON.stringify(favoriteData),
       });
 
-      console.log('📥 POST Response status:', response.status);
-      console.log('📥 POST Response headers:', JSON.stringify(Object.fromEntries([...response.headers]), null, 2));
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
@@ -312,9 +294,7 @@ class User {
       }
 
       const data = await response.json();
-      console.log('✅ POST Response data:', JSON.stringify(data, null, 2));
-      
-      console.log('✅ Favorite added successfully');
+
       await this.getFavorites(); // Refresh favorites list
       return true;
     } catch (error) {
@@ -325,11 +305,9 @@ class User {
 
   async removeFavorite(placeId) {
     try {
-      console.log('➖ Removing favorite with place_id:', placeId);
-      console.log('🔑 Using token:', this.token);
+
       
       const url = `${API_URL}/favorites?place_id=${placeId}`;
-      console.log('📡 Making DELETE request to:', url);
       
       const response = await fetch(url, {
         method: 'DELETE',
@@ -338,9 +316,6 @@ class User {
         },
       });
 
-      console.log('📥 DELETE Response status:', response.status);
-      console.log('📥 DELETE Response headers:', JSON.stringify(Object.fromEntries([...response.headers]), null, 2));
-      
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         console.error('❌ DELETE Error response:', errorData);
@@ -348,9 +323,7 @@ class User {
       }
 
       const data = await response.json();
-      console.log('✅ DELETE Response data:', JSON.stringify(data, null, 2));
-      
-      console.log('✅ Favorite removed successfully');
+
       await this.getFavorites(); // Refresh favorites list
       return true;
     } catch (error) {

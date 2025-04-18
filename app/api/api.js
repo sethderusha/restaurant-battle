@@ -10,13 +10,6 @@ let currentIndex = 0;
 // Check both environment variables for test mode
 let isTestMode = process.env.TEST_MODE === 'true' || process.env.EXPO_PUBLIC_TEST_MODE === 'true';
 
-// Add logging for test mode status
-console.log('API Client initialized with test mode:', isTestMode);
-console.log('Environment variables:', {
-  TEST_MODE: process.env.TEST_MODE,
-  EXPO_PUBLIC_TEST_MODE: process.env.EXPO_PUBLIC_TEST_MODE
-});
-
 // Base URL configuration
 const getBaseUrl = () => {
   // Use the API_URL from config
@@ -49,10 +42,6 @@ const getStorage = () => {
 // Add a request interceptor to add the auth token to requests
 apiClient.interceptors.request.use(
   async (config) => {
-    // Log all API requests
-    console.log(`API Request: ${config.method.toUpperCase()} ${config.url}`);
-    console.log('Test mode status:', isTestMode);
-    
     try {
       const storage = getStorage();
       const userData = await storage.getItem('user');
@@ -243,7 +232,6 @@ const getNearbyRestaurants = async (
         radius,
       },
     });
-    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching nearby restaurants:", error);
@@ -272,7 +260,6 @@ const getNextRestaurant = async (sessionId) => {
     const response = await apiClient.post("/api/next-restaurant", {
       session_id: sessionId,
     });
-    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching next restaurant:", error);
