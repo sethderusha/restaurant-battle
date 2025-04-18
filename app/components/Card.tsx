@@ -181,22 +181,22 @@ export function Card({
                 </View>
                 <View style={[styles.detailsContainer, isMobile? styles.mobileDetailsContainer : styles.desktopDetailsContainer]}>
                     {vicinity && (
-                        <Text style={styles.detailText} numberOfLines={1}>
+                        <Text style={[styles.detailText, isMobile? styles.mobileDetailText:styles.desktopDetailText]} numberOfLines={1}>
                             📍 {vicinity}
                         </Text>
                     )}
                     {rating && (
-                        <Text style={styles.detailText}>
+                        <Text style={[styles.detailText, isMobile? styles.mobileDetailText:styles.desktopDetailText]}>
                             {renderStars()} ({rating})
                         </Text>
                     )}
                     {price_level && (
-                        <Text style={styles.detailText}>
+                        <Text style={[styles.detailText, isMobile? styles.mobileDetailText:styles.desktopDetailText]}>
                             💰 {renderPriceLevel()}
                         </Text>
                     )}
                     {isOpenNow !== undefined && (
-                        <Text style={[styles.detailText, isOpenNow ? styles.openText : styles.closedText]}>
+                        <Text style={[styles.detailText, isMobile? styles.mobileDetailText:styles.desktopDetailText, isOpenNow ? styles.openText : styles.closedText]}>
                             {isOpenNow ? '🟢 Open' : '🔴 Closed'}
                         </Text>
                     )}
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#284B63',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        height: 80,
+        height: 100,
         justifyContent: 'center',
         paddingHorizontal: 15,
         paddingVertical: 10,
@@ -275,9 +275,10 @@ const styles = StyleSheet.create({
         fontFamily: 'SmileySans',
         textAlign: 'center',
         lineHeight: 36,
+        flexShrink: 1
     },
     desktopTitle: {
-        fontSize: 32,
+        fontSize: 30,
     },
     mobileTitle: {
         fontSize: 24,
@@ -327,9 +328,14 @@ const styles = StyleSheet.create({
     },
     detailText: {
         color: '#FFFFFF',
-        fontSize: 15,
         marginBottom: 6,
         fontFamily: 'SmileySans',
+    },
+    mobileDetailText: {
+        fontSize: 12,
+    },
+    desktopDetailText: {
+        fontSize: 15
     },
     openText: {
         color: '#4CAF50',
