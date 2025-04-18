@@ -93,8 +93,32 @@ class User {
       return this.location;
     } catch (error) {
       console.error("Failed to update location:", error);
-      throw new Error('Location access is required to use this app. Please enable location services and try again.');
+      // Instead of throwing an error, return null to indicate failure
+      // This allows the UI to handle the failure and prompt for manual input
+      return null;
     }
+  }
+
+  // Method to set manual location
+  setManualLocation(latitude, longitude) {
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      throw new Error('Latitude and longitude must be numbers');
+    }
+    
+    if (latitude < -90 || latitude > 90) {
+      throw new Error('Latitude must be between -90 and 90');
+    }
+    
+    if (longitude < -180 || longitude > 180) {
+      throw new Error('Longitude must be between -180 and 180');
+    }
+    
+    this.location = {
+      latitude,
+      longitude
+    };
+    this.hasInitializedLocation = true;
+    return this.location;
   }
 
   // Authentication methods

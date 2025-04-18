@@ -7,6 +7,7 @@ import Restaurant from "@/models/Restaurant";
 import User from "@/models/User";
 import { useAuth } from "@/context/AuthContext";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
+import { ManualLocationInput } from "@/components/ManualLocationInput";
 
 export type BattleViewProps = {
   left: CardProps;
@@ -28,6 +29,7 @@ export function BattleView({
   const [favoriteRestaurants, setFavoriteRestaurants] = useState<Set<string>>(new Set());
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const [showManualLocation, setShowManualLocation] = useState(false);
 
   // Helper function to get photo URL consistently
   const getRestaurantPhotoUrl = (restaurant: Restaurant) => {
@@ -145,10 +147,15 @@ export function BattleView({
 
   const getNext = async (side: "left" | "right") => {
     try {
-      if (currentIndex < restaurants.length) {
-        const nextRestaurant = restaurants[currentIndex];
+      console.log(`Getting next restaurant for ${side} card. Current index: ${currentIndex}, Total restaurants: ${restaurants.length}`);
+      
+      // Store the current index in a local variable to avoid race conditions
+      const currentIndexValue = currentIndex;
+      
+      if (currentIndexValue < restaurants.length) {
+        const nextRestaurant = restaurants[currentIndexValue];
         const isFavorite = favoriteRestaurants.has(nextRestaurant.id);
-        console.log(`Creating next card for ${nextRestaurant.name}, isFavorite: ${isFavorite}`);
+        console.log(`Creating next card for ${nextRestaurant.name}, isFavorite: ${isFavorite}, index: ${currentIndexValue}`);
         
         const nextCard: CardProps = {
           name: nextRestaurant.name,
@@ -163,37 +170,74 @@ export function BattleView({
           restaurant: nextRestaurant
         };
 
+        // When clicking left card, update right card and vice versa
         if (side === 'left') {
+          console.log(`Updating right card with ${nextRestaurant.name}`);
           setRightCard(nextCard);
         } else {
+          console.log(`Updating left card with ${nextRestaurant.name}`);
           setLeftCard(nextCard);
         }
         
-        setCurrentIndex(currentIndex + 1);
+        // Increment the index after updating the card
+        setCurrentIndex(currentIndexValue + 1);
+        console.log(`Incrementing index from ${currentIndexValue} to ${currentIndexValue + 1}`);
       } else {
         console.log("Getting next restaurant with session:", sessionId);
-        const nextRestaurant = await getNextRestaurant(sessionId);
-        const nextRestaurantObject = new Restaurant(nextRestaurant.restaurant);
-        const isFavorite = favoriteRestaurants.has(nextRestaurantObject.id);
-        console.log(`Creating next card for ${nextRestaurantObject.name}, isFavorite: ${isFavorite}`);
-        
-        const nextCard: CardProps = {
-          name: nextRestaurantObject.name,
-          image: getRestaurantPhotoUrl(nextRestaurantObject),
-          place_id: nextRestaurantObject.id,
-          vicinity: nextRestaurantObject.vicinity,
-          rating: nextRestaurantObject.rating,
-          price_level: nextRestaurantObject.priceLevel,
-          isOpenNow: nextRestaurantObject.isOpenNow,
-          isFavorite: isFavorite,
-          onFavoriteToggle: handleFavoriteToggle,
-          restaurant: nextRestaurantObject
-        };
+        try {
+          const nextRestaurant = await getNextRestaurant(sessionId);
+          console.log("API response:", nextRestaurant);
+          
+          if (!nextRestaurant || !nextRestaurant.restaurant) {
+            console.error("Invalid API response:", nextRestaurant);
+            throw new Error("Invalid API response");
+          }
+          
+          // Check if the restaurant is already in our cache
+          const restaurantId = nextRestaurant.restaurant.place_id;
+          const isAlreadyInCache = restaurants.some(r => r.id === restaurantId);
+          
+          if (isAlreadyInCache) {
+            console.log(`Restaurant ${restaurantId} is already in cache, skipping`);
+            // Try again with the next restaurant
+            return getNext(side);
+          }
+          
+          const nextRestaurantObject = new Restaurant(nextRestaurant.restaurant);
+          const isFavorite = favoriteRestaurants.has(nextRestaurantObject.id);
+          console.log(`Creating next card for ${nextRestaurantObject.name}, isFavorite: ${isFavorite}`);
+          
+          // Add the new restaurant to our cache
+          setRestaurants(prevRestaurants => [...prevRestaurants, nextRestaurantObject]);
+          
+          const nextCard: CardProps = {
+            name: nextRestaurantObject.name,
+            image: getRestaurantPhotoUrl(nextRestaurantObject),
+            place_id: nextRestaurantObject.id,
+            vicinity: nextRestaurantObject.vicinity,
+            rating: nextRestaurantObject.rating,
+            price_level: nextRestaurantObject.priceLevel,
+            isOpenNow: nextRestaurantObject.isOpenNow,
+            isFavorite: isFavorite,
+            onFavoriteToggle: handleFavoriteToggle,
+            restaurant: nextRestaurantObject
+          };
 
-        if (side === 'left') {
-          setRightCard(nextCard);
-        } else {
-          setLeftCard(nextCard);
+          // When clicking left card, update right card and vice versa
+          if (side === 'left') {
+            console.log(`Updating right card with ${nextRestaurantObject.name}`);
+            setRightCard(nextCard);
+          } else {
+            console.log(`Updating left card with ${nextRestaurantObject.name}`);
+            setLeftCard(nextCard);
+          }
+          
+          // Update the current index to point to the next restaurant
+          setCurrentIndex(restaurants.length + 1);
+          console.log(`Updated index to ${restaurants.length + 1}`);
+        } catch (apiError) {
+          console.error("Error fetching from API:", apiError);
+          throw apiError;
         }
       }
     } catch (error) {
@@ -212,131 +256,181 @@ export function BattleView({
     }
   };
 
-  useEffect(() => {
-    const fetchRestaurants = async () => {
-      try {
-        let location;
-        
-        // If there's a logged in user, try to get their location
-        if (user) {
-          if (!user.hasInitializedLocation) {
-            console.log("Initializing user location...");
-            try {
-              await user.updateLocation();
-              location = user.location;
-            } catch (error) {
-              console.error("Failed to get user location:", error);
-              setError("Location access is required to use this app. Please enable location services and try again.");
+  const fetchWithLocation = async (location: { latitude: number; longitude: number }) => {
+    try {
+      const result = await getNearbyRestaurants(
+        sessionId,
+        location.latitude,
+        location.longitude,
+      );
+
+      if (!result?.restaurants?.length) {
+        throw new Error("No restaurants found in this area");
+      }
+
+      if (result.restaurants.length < 2) {
+        throw new Error("Not enough restaurants found in this area");
+      }
+
+      // Store all restaurants in state
+      const restaurantObjects = result.restaurants.map(
+        (restaurantData: any) => new Restaurant(restaurantData)
+      );
+      setRestaurants(restaurantObjects);
+
+      // Set initial cards using the first two restaurants
+      const firstRestaurant = restaurantObjects[0];
+      const secondRestaurant = restaurantObjects[1];
+      
+      const firstIsFavorite = favoriteRestaurants.has(firstRestaurant.id);
+      const secondIsFavorite = favoriteRestaurants.has(secondRestaurant.id);
+      
+      console.log(`Setting initial cards: ${firstRestaurant.name} (isFavorite: ${firstIsFavorite}), ${secondRestaurant.name} (isFavorite: ${secondIsFavorite})`);
+
+      setLeftCard({
+        name: firstRestaurant.name,
+        image: getRestaurantPhotoUrl(firstRestaurant),
+        place_id: firstRestaurant.id,
+        vicinity: firstRestaurant.vicinity,
+        rating: firstRestaurant.rating,
+        price_level: firstRestaurant.priceLevel,
+        isOpenNow: firstRestaurant.isOpenNow,
+        isFavorite: firstIsFavorite,
+        onFavoriteToggle: handleFavoriteToggle,
+        restaurant: firstRestaurant
+      });
+
+      setRightCard({
+        name: secondRestaurant.name,
+        image: getRestaurantPhotoUrl(secondRestaurant),
+        place_id: secondRestaurant.id,
+        vicinity: secondRestaurant.vicinity,
+        rating: secondRestaurant.rating,
+        price_level: secondRestaurant.priceLevel,
+        isOpenNow: secondRestaurant.isOpenNow,
+        isFavorite: secondIsFavorite,
+        onFavoriteToggle: handleFavoriteToggle,
+        restaurant: secondRestaurant
+      });
+
+      setCurrentIndex(2); // Start at index 2 since we've used the first two
+    } catch (error) {
+      console.error("Error fetching restaurants:", error);
+      setError(error instanceof Error ? error.message : "Failed to load restaurants");
+    }
+  };
+
+  const fetchRestaurants = async () => {
+    try {
+      let location;
+      
+      // If there's a logged in user, try to get their location
+      if (user) {
+        if (!user.hasInitializedLocation) {
+          console.log("Initializing user location...");
+          try {
+            const locationResult = await user.updateLocation();
+            if (locationResult) {
+              location = locationResult;
+            } else {
+              // Location fetch failed, show manual input
+              console.log("Location fetch failed, showing manual input");
+              setShowManualLocation(true);
               setLoading(false);
               return;
             }
-          } else {
-            if (!user.location) {
-              setError("Location access is required to use this app. Please enable location services and try again.");
-              setLoading(false);
-              return;
-            }
-            location = user.location;
+          } catch (error) {
+            console.error("Failed to get user location:", error);
+            setShowManualLocation(true);
+            setLoading(false);
+            return;
           }
         } else {
-          // No user, show error
-          console.log("No user logged in");
-          setError("Please log in to use the app");
-          setLoading(false);
-          return;
+          if (!user.location) {
+            setShowManualLocation(true);
+            setLoading(false);
+            return;
+          }
+          location = user.location;
         }
-
-        // Proceed with location
-        await fetchWithLocation(location);
-        
-      } catch (error) {
-        console.error("Error in fetchRestaurants:", error);
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Failed to load nearby restaurants"
-        );
-      } finally {
+      } else {
+        // No user, show error
+        console.log("No user logged in");
+        setError("Please log in to use the app");
         setLoading(false);
+        return;
       }
-    };
 
-    const fetchWithLocation = async (location: { latitude: number; longitude: number }) => {
-      try {
-        const result = await getNearbyRestaurants(
-          sessionId,
-          location.latitude,
-          location.longitude,
-        );
+      // Proceed with location
+      await fetchWithLocation(location);
+      
+    } catch (error) {
+      console.error("Error in fetchRestaurants:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load nearby restaurants"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        if (!result?.restaurants?.length) {
-          throw new Error("No restaurants found in this area");
-        }
-
-        if (result.restaurants.length < 2) {
-          throw new Error("Not enough restaurants found in this area");
-        }
-
-        // Store all restaurants in state
-        const restaurantObjects = result.restaurants.map(
-          (restaurantData: any) => new Restaurant(restaurantData)
-        );
-        setRestaurants(restaurantObjects);
-
-        // Set initial cards using the first two restaurants
-        const firstRestaurant = restaurantObjects[0];
-        const secondRestaurant = restaurantObjects[1];
-        
-        const firstIsFavorite = favoriteRestaurants.has(firstRestaurant.id);
-        const secondIsFavorite = favoriteRestaurants.has(secondRestaurant.id);
-        
-        console.log(`Setting initial cards: ${firstRestaurant.name} (isFavorite: ${firstIsFavorite}), ${secondRestaurant.name} (isFavorite: ${secondIsFavorite})`);
-
-        setLeftCard({
-          name: firstRestaurant.name,
-          image: getRestaurantPhotoUrl(firstRestaurant),
-          place_id: firstRestaurant.id,
-          vicinity: firstRestaurant.vicinity,
-          rating: firstRestaurant.rating,
-          price_level: firstRestaurant.priceLevel,
-          isOpenNow: firstRestaurant.isOpenNow,
-          isFavorite: firstIsFavorite,
-          onFavoriteToggle: handleFavoriteToggle,
-          restaurant: firstRestaurant
-        });
-
-        setRightCard({
-          name: secondRestaurant.name,
-          image: getRestaurantPhotoUrl(secondRestaurant),
-          place_id: secondRestaurant.id,
-          vicinity: secondRestaurant.vicinity,
-          rating: secondRestaurant.rating,
-          price_level: secondRestaurant.priceLevel,
-          isOpenNow: secondRestaurant.isOpenNow,
-          isFavorite: secondIsFavorite,
-          onFavoriteToggle: handleFavoriteToggle,
-          restaurant: secondRestaurant
-        });
-
-        setCurrentIndex(2); // Start at index 2 since we've used the first two
-      } catch (error) {
-        console.error("Error fetching restaurants:", error);
-        setError(error instanceof Error ? error.message : "Failed to load restaurants");
-      }
-    };
-
+  useEffect(() => {
     fetchRestaurants();
   }, [user, favoriteRestaurants]);
+
+  const handleManualLocationSubmit = async (latitude: number, longitude: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (!user) {
+        setError("You must be logged in to use this app");
+        setLoading(false);
+        return;
+      }
+      
+      // Set the manual location
+      user.setManualLocation(latitude, longitude);
+      
+      // Close the modal
+      setShowManualLocation(false);
+      
+      // Fetch restaurants with the new location
+      await fetchWithLocation(user.location);
+    } catch (error) {
+      console.error("Error setting manual location:", error);
+      setError(error instanceof Error ? error.message : "Failed to set location");
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return <LoadingOverlay message="Loading nearby restaurants..." />;
   }
 
-  return (
-    <View style={styles.container}>
-      {error ? (
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
-      ) : (
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => {
+            setError(null);
+            setLoading(true);
+            fetchRestaurants();
+          }}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <View style={styles.container}>
         <View style={[styles.cardsContainer, isMobile? styles.mobileCardsContainer : styles.desktopCardsContainer]}>
           <TouchableOpacity
             onPress={() => handleCardClick("left")}
@@ -375,8 +469,15 @@ export function BattleView({
             />
           </TouchableOpacity>
         </View>
-      )}
-    </View>
+      </View>
+      
+      <ManualLocationInput
+        visible={showManualLocation}
+        onClose={() => setShowManualLocation(false)}
+        onSubmit={handleManualLocationSubmit}
+        error={error}
+      />
+    </>
   );
 }
 
@@ -411,5 +512,21 @@ const styles = StyleSheet.create({
     color: "red",
     textAlign: "center" as const,
     width: "100%",
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  retryButton: {
+    backgroundColor: '#007bff',
+    padding: 15,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

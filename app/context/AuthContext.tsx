@@ -81,11 +81,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Request location permission after successful authentication
       await User.requestLocationPermission();
       // Update user's location
-      await newUser.updateLocation();
+      const locationResult = await newUser.updateLocation();
+      
       // Save user data
       await AsyncStorage.setItem('user', JSON.stringify(newUser.toJSON()));
       setUser(newUser);
       setIsAuthenticated(true);
+      
+      // If location is null, we'll handle it in the UI
+      return locationResult;
     } catch (error) {
       console.error('Error in post-auth setup:', error);
       // Clear any partial auth state since location is required

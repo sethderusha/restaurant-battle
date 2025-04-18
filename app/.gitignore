@@ -40,3 +40,4 @@ app-example
 .env
 flask-backend/.env
 web-build/
+config.ts

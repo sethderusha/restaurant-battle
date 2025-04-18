@@ -1,4 +1,1 @@
-web-build/
-node_modules/
-expo-env.d.ts
-.expo/
+flask-backend/restaurant_battle.db
