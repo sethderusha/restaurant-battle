@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, Dimensions, useWindowDimensions } from "react-native";
 import { Card, CardProps } from "@/components/Card";
 import { getNearbyRestaurants, getNextRestaurant, getPhotoUrl } from "@/api/api";
@@ -30,6 +30,7 @@ export function BattleView({
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const [showManualLocation, setShowManualLocation] = useState(false);
+  const isFirstRun = useRef(true);
 
   // Helper function to get photo URL consistently
   const getRestaurantPhotoUrl = (restaurant: Restaurant) => {
@@ -65,21 +66,37 @@ export function BattleView({
 
   // Add a new effect to update card favorite states when favoriteRestaurants changes
   useEffect(() => {
+    console.log(`🔍 useEffect triggered by favoriteRestaurants change`);
+    console.log(`🔍 Current favoriteRestaurants: ${Array.from(favoriteRestaurants).join(', ')}`);
+    console.log(`🔍 Current leftCard.place_id: ${leftCard.place_id}, isFavorite: ${leftCard.isFavorite}`);
+    console.log(`🔍 Current rightCard.place_id: ${rightCard.place_id}, isFavorite: ${rightCard.isFavorite}`);
     
-    // Update left card favorite state
-    if (leftCard.place_id) {
-      const isFavorite = favoriteRestaurants.has(leftCard.place_id);
-      if (leftCard.isFavorite !== isFavorite) {
-        setLeftCard(prev => ({...prev, isFavorite}));
+    // This effect should only run when favoriteRestaurants changes due to initial load
+    // or when a card is replaced, not when a user toggles a favorite
+    // We'll use a ref to track if this is the first run
+    if (isFirstRun.current) {
+      console.log(`🔍 First run of useEffect, updating card states`);
+      isFirstRun.current = false;
+      
+      // Update left card favorite state
+      if (leftCard.place_id) {
+        const isFavorite = favoriteRestaurants.has(leftCard.place_id);
+        if (leftCard.isFavorite !== isFavorite) {
+          console.log(`🔍 Updating left card favorite state from ${leftCard.isFavorite} to ${isFavorite}`);
+          setLeftCard(prev => ({...prev, isFavorite}));
+        }
       }
-    }
-    
-    // Update right card favorite state
-    if (rightCard.place_id) {
-      const isFavorite = favoriteRestaurants.has(rightCard.place_id);
-      if (rightCard.isFavorite !== isFavorite) {
-        setRightCard(prev => ({...prev, isFavorite}));
+      
+      // Update right card favorite state
+      if (rightCard.place_id) {
+        const isFavorite = favoriteRestaurants.has(rightCard.place_id);
+        if (rightCard.isFavorite !== isFavorite) {
+          console.log(`🔍 Updating right card favorite state from ${rightCard.isFavorite} to ${isFavorite}`);
+          setRightCard(prev => ({...prev, isFavorite}));
+        }
       }
+    } else {
+      console.log(`🔍 Skipping effect - not first run`);
     }
   }, [favoriteRestaurants]);
 
@@ -91,9 +108,20 @@ export function BattleView({
       return;
     }
 
+    console.log(`🔍 handleFavoriteToggle called for place_id: ${place_id}, isFavorite: ${isFavorite}`);
+    console.log(`🔍 Current leftCard.place_id: ${leftCard.place_id}, rightCard.place_id: ${rightCard.place_id}`);
+
     try {
+      // Determine which card is being toggled
+      const isLeftCard = place_id === leftCard.place_id;
+      const isRightCard = place_id === rightCard.place_id;
       
-      // Update the local state immediately for a responsive UI
+      if (!isLeftCard && !isRightCard) {
+        console.log(`🔍 WARNING: place_id ${place_id} doesn't match either card!`);
+        return;
+      }
+      
+      // Update the favoriteRestaurants set
       setFavoriteRestaurants(prev => {
         const newSet = new Set(prev);
         if (isFavorite) {
@@ -101,24 +129,30 @@ export function BattleView({
         } else {
           newSet.delete(place_id);
         }
+        console.log(`🔍 Updated favoriteRestaurants: ${Array.from(newSet).join(', ')}`);
         return newSet;
       });
       
-      // Update the card state directly
-      if (place_id === leftCard.place_id) {
+      // Update only the specific card that was toggled
+      if (isLeftCard) {
+        console.log(`🔍 Updating left card favorite state to: ${isFavorite}`);
         setLeftCard(prev => ({...prev, isFavorite}));
-      } else if (place_id === rightCard.place_id) {
+      } else if (isRightCard) {
+        console.log(`🔍 Updating right card favorite state to: ${isFavorite}`);
         setRightCard(prev => ({...prev, isFavorite}));
       }
       
+      // Make the API call to update the backend
       if (isFavorite) {
         // Get the restaurant data from the current card
-        const currentCard = place_id === leftCard.place_id ? leftCard : rightCard;
+        const currentCard = isLeftCard ? leftCard : rightCard;
         
         if (currentCard.restaurant) {
+          console.log(`🔍 Adding favorite for restaurant: ${currentCard.name}`);
           await user.addFavorite(currentCard.restaurant);
         }
       } else {
+        console.log(`🔍 Removing favorite for place_id: ${place_id}`);
         await user.removeFavorite(place_id);
       }
     } catch (error) {
@@ -146,6 +180,7 @@ export function BattleView({
 
   const getNext = async (side: "left" | "right") => {
     try {
+      console.log(`🔍 getNext called for side: ${side}`);
       
       // Store the current index in a local variable to avoid race conditions
       const currentIndexValue = currentIndex;
@@ -153,6 +188,8 @@ export function BattleView({
       if (currentIndexValue < restaurants.length) {
         const nextRestaurant = restaurants[currentIndexValue];
         const isFavorite = favoriteRestaurants.has(nextRestaurant.id);
+        
+        console.log(`🔍 Loading next restaurant from cache: ${nextRestaurant.name}, isFavorite: ${isFavorite}`);
         
         const nextCard: CardProps = {
           name: nextRestaurant.name,
@@ -169,8 +206,10 @@ export function BattleView({
 
         // When clicking left card, update right card and vice versa
         if (side === 'left') {
+          console.log(`🔍 Updating right card with next restaurant`);
           setRightCard(nextCard);
         } else {
+          console.log(`🔍 Updating left card with next restaurant`);
           setLeftCard(nextCard);
         }
         
@@ -178,6 +217,7 @@ export function BattleView({
         setCurrentIndex(currentIndexValue + 1);
       } else {
         try {
+          console.log(`🔍 Fetching next restaurant from API`);
           const nextRestaurant = await getNextRestaurant(sessionId);
           
           if (!nextRestaurant || !nextRestaurant.restaurant) {
@@ -190,12 +230,15 @@ export function BattleView({
           const isAlreadyInCache = restaurants.some(r => r.id === restaurantId);
           
           if (isAlreadyInCache) {
+            console.log(`🔍 Restaurant already in cache, trying again`);
             // Try again with the next restaurant
             return getNext(side);
           }
           
           const nextRestaurantObject = new Restaurant(nextRestaurant.restaurant);
           const isFavorite = favoriteRestaurants.has(nextRestaurantObject.id);
+          
+          console.log(`🔍 Loading next restaurant from API: ${nextRestaurantObject.name}, isFavorite: ${isFavorite}`);
           
           // Add the new restaurant to our cache
           setRestaurants(prevRestaurants => [...prevRestaurants, nextRestaurantObject]);
@@ -215,8 +258,10 @@ export function BattleView({
 
           // When clicking left card, update right card and vice versa
           if (side === 'left') {
+            console.log(`🔍 Updating right card with next restaurant from API`);
             setRightCard(nextCard);
           } else {
+            console.log(`🔍 Updating left card with next restaurant from API`);
             setLeftCard(nextCard);
           }
           
@@ -244,6 +289,8 @@ export function BattleView({
 
   const fetchWithLocation = async (location: { latitude: number; longitude: number }) => {
     try {
+      console.log(`🔍 fetchWithLocation called with location: ${location.latitude}, ${location.longitude}`);
+      
       const result = await getNearbyRestaurants(
         sessionId,
         location.latitude,
@@ -270,6 +317,8 @@ export function BattleView({
       
       const firstIsFavorite = favoriteRestaurants.has(firstRestaurant.id);
       const secondIsFavorite = favoriteRestaurants.has(secondRestaurant.id);
+      
+      console.log(`🔍 Setting initial cards: ${firstRestaurant.name} (isFavorite: ${firstIsFavorite}), ${secondRestaurant.name} (isFavorite: ${secondIsFavorite})`);
       
       setLeftCard({
         name: firstRestaurant.name,
@@ -359,7 +408,7 @@ export function BattleView({
 
   useEffect(() => {
     fetchRestaurants();
-  }, [user, favoriteRestaurants]);
+  }, [user]);
 
   const handleManualLocationSubmit = async (latitude: number, longitude: number) => {
     try {
