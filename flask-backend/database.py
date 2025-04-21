@@ -1,7 +1,6 @@
-import sqlite3
-from sqlite3 import Error
 import json
 from pathlib import Path
+from database_config import get_db_cursor, get_db_connection, convert_sqlite_to_postgres_query, ENV
 
 DATABASE_PATH = Path(__file__).parent / "restaurant_battle.db"
 
@@ -17,13 +16,12 @@ def create_connection():
 
 def init_db():
     """Initialize the database with required tables"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_connection() as conn:
         try:
-            c = conn.cursor()
+            cursor = conn.cursor()
             
             # Create users table
-            c.execute('''
+            users_table = convert_sqlite_to_postgres_query('''
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE NOT NULL,
@@ -33,9 +31,10 @@ def init_db():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
+            cursor.execute(users_table)
             
             # Create favorites table
-            c.execute('''
+            favorites_table = convert_sqlite_to_postgres_query('''
                 CREATE TABLE IF NOT EXISTS favorites (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id INTEGER,
@@ -52,9 +51,10 @@ def init_db():
                     UNIQUE(user_id, place_id)
                 )
             ''')
+            cursor.execute(favorites_table)
 
             # Create playlists table
-            c.execute('''
+            playlists_table = convert_sqlite_to_postgres_query('''
                 CREATE TABLE IF NOT EXISTS playlists (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id INTEGER,
@@ -63,9 +63,10 @@ def init_db():
                     FOREIGN KEY (user_id) REFERENCES users (id)
                 )
             ''')
+            cursor.execute(playlists_table)
 
             # Create playlist_items table
-            c.execute('''
+            playlist_items_table = convert_sqlite_to_postgres_query('''
                 CREATE TABLE IF NOT EXISTS playlist_items (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     playlist_id INTEGER,
@@ -82,39 +83,33 @@ def init_db():
                     UNIQUE(playlist_id, place_id)
                 )
             ''')
+            cursor.execute(playlist_items_table)
             
             conn.commit()
-        except Error as e:
+        except Exception as e:
             print(f"Error creating tables: {e}")
-        finally:
-            conn.close()
+            conn.rollback()
 
 def add_user(username, password_hash, display_name=None, app_settings=None):
     """Add a new user to the database"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_cursor() as cursor:
         try:
-            c = conn.cursor()
-            c.execute('''
+            cursor.execute('''
                 INSERT INTO users (username, password_hash, display_name, app_settings)
-                VALUES (?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id
             ''', (username, password_hash, display_name, json.dumps(app_settings) if app_settings else None))
-            conn.commit()
-            return c.lastrowid
-        except Error as e:
+            return cursor.fetchone()[0]
+        except Exception as e:
             print(f"Error adding user: {e}")
             return None
-        finally:
-            conn.close()
 
 def get_user(username):
     """Get user by username"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_cursor() as cursor:
         try:
-            c = conn.cursor()
-            c.execute('SELECT * FROM users WHERE username = ?', (username,))
-            user = c.fetchone()
+            cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+            user = cursor.fetchone()
             if user:
                 # Properly handle app_settings deserialization
                 app_settings = None
@@ -133,15 +128,14 @@ def get_user(username):
                     'created_at': user[5]
                 }
             return None
-        finally:
-            conn.close()
+        except Exception as e:
+            print(f"Error getting user: {e}")
+            return None
 
 def update_user_settings(user_id, app_settings):
     """Update user's app settings"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_cursor() as cursor:
         try:
-            c = conn.cursor()
             # Ensure app_settings is a dictionary before serializing
             if app_settings is None:
                 app_settings = {}
@@ -151,29 +145,24 @@ def update_user_settings(user_id, app_settings):
                 except json.JSONDecodeError:
                     app_settings = {}
             
-            c.execute('''
+            cursor.execute('''
                 UPDATE users 
-                SET app_settings = ?
-                WHERE id = ?
+                SET app_settings = %s
+                WHERE id = %s
             ''', (json.dumps(app_settings), user_id))
-            conn.commit()
             return True
-        except Error as e:
+        except Exception as e:
             print(f"Error updating user settings: {e}")
             return False
-        finally:
-            conn.close()
 
 def add_favorite(user_id, restaurant_data):
     """Add a restaurant to user's favorites"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_cursor() as cursor:
         try:
-            c = conn.cursor()
-            c.execute('''
+            cursor.execute('''
                 INSERT INTO favorites 
                 (user_id, place_id, name, picture, address, rating, price, lat, lng)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 user_id,
                 restaurant_data['place_id'],
@@ -185,46 +174,36 @@ def add_favorite(user_id, restaurant_data):
                 restaurant_data.get('lat', None),
                 restaurant_data.get('lng', None)
             ))
-            conn.commit()
             return True
-        except Error as e:
+        except Exception as e:
             print(f"Error adding favorite: {e}")
             return False
-        finally:
-            conn.close()
 
 def remove_favorite(user_id, place_id):
     """Remove a restaurant from user's favorites"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_cursor() as cursor:
         try:
-            c = conn.cursor()
-            c.execute('''
+            cursor.execute('''
                 DELETE FROM favorites 
-                WHERE user_id = ? AND place_id = ?
+                WHERE user_id = %s AND place_id = %s
             ''', (user_id, place_id))
-            conn.commit()
             return True
-        except Error as e:
+        except Exception as e:
             print(f"Error removing favorite: {e}")
             return False
-        finally:
-            conn.close()
 
 def get_user_favorites(user_id):
     """Get all favorite restaurants for a user"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_cursor() as cursor:
         try:
-            c = conn.cursor()
-            c.execute('''
+            cursor.execute('''
                 SELECT place_id, name, picture, address, rating, price, lat, lng
                 FROM favorites
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY created_at DESC
             ''', (user_id,))
             favorites = []
-            for row in c.fetchall():
+            for row in cursor.fetchall():
                 favorites.append({
                     'place_id': row[0],
                     'name': row[1],
@@ -236,64 +215,58 @@ def get_user_favorites(user_id):
                     'lng': row[7]
                 })
             return favorites
-        finally:
-            conn.close()
+        except Exception as e:
+            print(f"Error getting user favorites: {e}")
+            return []
 
 def create_playlist(user_id, name):
     """Create a new playlist for a user"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_cursor() as cursor:
         try:
-            c = conn.cursor()
-            c.execute('''
+            cursor.execute('''
                 INSERT INTO playlists (user_id, name)
-                VALUES (?, ?)
+                VALUES (%s, %s)
+                RETURNING id
             ''', (user_id, name))
-            conn.commit()
-            return c.lastrowid
-        except Error as e:
+            return cursor.fetchone()[0]
+        except Exception as e:
             print(f"Error creating playlist: {e}")
             return None
-        finally:
-            conn.close()
 
 def get_user_playlists(user_id):
     """Get all playlists for a user"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_cursor() as cursor:
         try:
-            c = conn.cursor()
-            c.execute('''
+            cursor.execute('''
                 SELECT id, name, created_at
                 FROM playlists
-                WHERE user_id = ?
+                WHERE user_id = %s
                 ORDER BY created_at DESC
             ''', (user_id,))
             playlists = []
-            for row in c.fetchall():
+            for row in cursor.fetchall():
                 playlists.append({
                     'id': row[0],
                     'name': row[1],
                     'created_at': row[2]
                 })
             return playlists
-        finally:
-            conn.close()
+        except Exception as e:
+            print(f"Error getting user playlists: {e}")
+            return []
 
 def get_playlist_items(playlist_id):
     """Get all items in a playlist"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_cursor() as cursor:
         try:
-            c = conn.cursor()
-            c.execute('''
+            cursor.execute('''
                 SELECT place_id, name, picture, address, rating, price, lat, lng
                 FROM playlist_items
-                WHERE playlist_id = ?
+                WHERE playlist_id = %s
                 ORDER BY created_at DESC
             ''', (playlist_id,))
             items = []
-            for row in c.fetchall():
+            for row in cursor.fetchall():
                 items.append({
                     'place_id': row[0],
                     'name': row[1],
@@ -305,19 +278,18 @@ def get_playlist_items(playlist_id):
                     'lng': row[7]
                 })
             return items
-        finally:
-            conn.close()
+        except Exception as e:
+            print(f"Error getting playlist items: {e}")
+            return []
 
 def add_to_playlist(playlist_id, restaurant_data):
     """Add a restaurant to a playlist"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_cursor() as cursor:
         try:
-            c = conn.cursor()
-            c.execute('''
+            cursor.execute('''
                 INSERT INTO playlist_items 
                 (playlist_id, place_id, name, picture, address, rating, price, lat, lng)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 playlist_id,
                 restaurant_data['place_id'],
@@ -329,49 +301,37 @@ def add_to_playlist(playlist_id, restaurant_data):
                 restaurant_data.get('lat', None),
                 restaurant_data.get('lng', None)
             ))
-            conn.commit()
             return True
-        except Error as e:
+        except Exception as e:
             print(f"Error adding to playlist: {e}")
             return False
-        finally:
-            conn.close()
 
 def remove_from_playlist(playlist_id, place_id):
     """Remove a restaurant from a playlist"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_cursor() as cursor:
         try:
-            c = conn.cursor()
-            c.execute('''
+            cursor.execute('''
                 DELETE FROM playlist_items 
-                WHERE playlist_id = ? AND place_id = ?
+                WHERE playlist_id = %s AND place_id = %s
             ''', (playlist_id, place_id))
-            conn.commit()
             return True
-        except Error as e:
+        except Exception as e:
             print(f"Error removing from playlist: {e}")
             return False
-        finally:
-            conn.close()
 
 def delete_playlist(playlist_id):
     """Delete a playlist and all its items"""
-    conn = create_connection()
-    if conn is not None:
+    with get_db_connection() as conn:
         try:
-            c = conn.cursor()
+            cursor = conn.cursor()
             # First delete all items in the playlist
-            c.execute('DELETE FROM playlist_items WHERE playlist_id = ?', (playlist_id,))
+            cursor.execute('DELETE FROM playlist_items WHERE playlist_id = %s', (playlist_id,))
             # Then delete the playlist itself
-            c.execute('DELETE FROM playlists WHERE id = ?', (playlist_id,))
-            conn.commit()
+            cursor.execute('DELETE FROM playlists WHERE id = %s', (playlist_id,))
             return True
-        except Error as e:
+        except Exception as e:
             print(f"Error deleting playlist: {e}")
             return False
-        finally:
-            conn.close()
 
 # Initialize database when module is imported
 init_db() 
