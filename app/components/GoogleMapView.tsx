@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Restaurant from '@/models/Restaurant';
 import { API_URL } from '@/config';
+import { useAuth } from '@/context/AuthContext';
 
 // Add Google Maps type declarations
 declare global {
@@ -11,19 +12,14 @@ declare global {
         Map: new (element: HTMLElement, options: any) => any;
         Marker: new (options: any) => any;
         InfoWindow: new (options: any) => any;
+        LatLngBounds: new () => any;
       };
     };
   }
 }
 
-// Extend the Restaurant type to include location properties
-interface RestaurantWithLocation extends Restaurant {
-  lat?: number;
-  lng?: number;
-}
-
 interface GoogleMapViewProps {
-  items: RestaurantWithLocation[]; // can be favorites or playlist items
+  items: Restaurant[]; // can be favorites or playlist items
 }
 
 export function GoogleMapView({ items }: GoogleMapViewProps) {
@@ -32,6 +28,29 @@ export function GoogleMapView({ items }: GoogleMapViewProps) {
   const [apiKey, setApiKey] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // Helper to extract location from a restaurant
+  const getRestaurantLocation = (restaurant: Restaurant) => {
+    console.log('🗺️ Getting location for restaurant:', {
+      name: restaurant.name,
+      location: restaurant.location,
+      raw: restaurant
+    });
+    
+    // Check if we have valid location data
+    if (restaurant.location?.latitude && restaurant.location?.longitude) {
+      const location = {
+        lat: restaurant.location.latitude,
+        lng: restaurant.location.longitude
+      };
+      console.log('🗺️ Valid location found:', location);
+      return location;
+    }
+
+    console.log('🗺️ No valid location found for restaurant:', restaurant.name);
+    return null;
+  };
 
   // Fetch the API key from the backend
   useEffect(() => {
@@ -52,7 +71,7 @@ export function GoogleMapView({ items }: GoogleMapViewProps) {
     };
 
     fetchApiKey();
-  }, []);
+  }, [user]);
 
   // Helper to load the Google Maps API script dynamically
   const loadScript = (url: string) => {
@@ -76,10 +95,15 @@ export function GoogleMapView({ items }: GoogleMapViewProps) {
   const initializeMap = useCallback(() => {
     if (!mapRef.current || !window.google) return;
 
-    // Set a default center; you might adjust this (or even auto-center based on markers)
-    const defaultCenter = { lat: 40.7128, lng: -74.0060 };
+    console.log('🗺️ Initializing map with items:', items);
+
+    // Create a bounds object to fit all markers
+    const bounds = new window.google.maps.LatLngBounds();
+    let hasValidLocations = false;
+
+    // Set a default center (will be adjusted by bounds if markers exist)
     const map = new window.google.maps.Map(mapRef.current, {
-      center: defaultCenter,
+      center: { lat: 40.7128, lng: -74.0060 }, // Default to NYC
       zoom: 10,
     });
 
@@ -87,17 +111,22 @@ export function GoogleMapView({ items }: GoogleMapViewProps) {
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
 
-    // Add a marker for each item, provided it has lat and lng
+    // Add a marker for each item with valid location
     items.forEach((item) => {
-      if (item.lat && item.lng) {
+      const location = getRestaurantLocation(item);
+      if (location) {
+        hasValidLocations = true;
         const marker = new window.google.maps.Marker({
-          position: { lat: item.lat, lng: item.lng },
+          position: location,
           map,
           title: item.name,
         });
 
+        // Extend bounds to include this marker
+        bounds.extend(location);
+
         const infoWindow = new window.google.maps.InfoWindow({
-          content: `<div style="color: #000;"><strong>${item.name}</strong><br/><a href="https://www.google.com/maps/place/?q=place_id:${item.place_id}" target="_blank">View on Google Maps</a></div>`,
+          content: `<div style="color: #000;"><strong>${item.name}</strong><br/>${item.vicinity || ''}<br/><a href="https://www.google.com/maps/place/?q=place_id:${item.place_id}" target="_blank">View on Google Maps</a></div>`,
         });
 
         marker.addListener('click', () => {
@@ -107,6 +136,19 @@ export function GoogleMapView({ items }: GoogleMapViewProps) {
         markersRef.current.push(marker);
       }
     });
+
+    // If we have valid locations, fit the map to show all markers
+    if (hasValidLocations) {
+      console.log('🗺️ Adjusting map bounds to fit markers');
+      map.fitBounds(bounds);
+      // Adjust zoom if too far out
+      const zoom = map.getZoom();
+      if (zoom && zoom > 15) {
+        map.setZoom(15);
+      }
+    } else {
+      console.log('🗺️ No valid locations found for any items');
+    }
   }, [items]);
 
   // Load the script on first render and initialize the map

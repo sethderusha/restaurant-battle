@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, useSegments } from 'expo-router';
 import User from '@/models/User';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { setTestMode } from '@/api/testMode';
 
 // Define the shape of our context
 type AuthContextType = {
@@ -11,6 +12,7 @@ type AuthContextType = {
   login: (username: string, password: string) => Promise<void>;
   signup: (username: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  tryDemo: () => Promise<void>;
   updateUserProfile: (updates: { 
     displayName?: string; 
     password?: string; 
@@ -125,6 +127,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const tryDemo = async () => {
+    setIsLoading(true);
+    try {
+      // Create a demo user with predefined settings
+      const demoUser = new User({
+        id: 'demo-user',
+        username: 'demo',
+        displayName: 'Demo User',
+        token: 'demo-token',
+        settings: {
+          cuisinePreferences: ['Italian', 'Mexican', 'Japanese', 'American'],
+          priceRange: [1, 4],
+          radius: 1000,
+        },
+        favorites: [],
+        profilePicture: 'default',
+        isDemoUser: true
+      });
+      
+      // Save demo user data
+      await AsyncStorage.setItem('user', JSON.stringify(demoUser.toJSON()));
+      setUser(demoUser);
+      setIsAuthenticated(true);
+      
+      // Request location permission
+      await User.requestLocationPermission();
+      
+      // Update location
+      await demoUser.updateLocation();
+    } catch (error) {
+      console.error('Demo mode error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const updateUserProfile = async (updates: { 
     displayName?: string; 
     password?: string; 
@@ -174,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         signup,
         signOut,
+        tryDemo,
         updateUserProfile,
       }}
     >

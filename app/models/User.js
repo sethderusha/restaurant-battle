@@ -12,6 +12,7 @@ class User {
     this.location = null;
     this.hasInitializedLocation = false;
     this.profilePicture = data.profilePicture || 'default';
+    this.isDemoUser = data.isDemoUser || false;
 
     // User preferences and settings
     this.settings = {
@@ -23,6 +24,11 @@ class User {
 
     // Favorites
     this.favorites = data.favorites || [];
+  }
+
+  // Check if this is a demo user
+  isDemo() {
+    return this.isDemoUser || this.id === 'demo-user' || this.username === 'demo';
   }
 
   // Static method to request location permissions
@@ -176,8 +182,11 @@ class User {
     }
   }
 
-  // Helper method to get the token
+  // Get the authentication token
   getToken() {
+    if (this.isDemo()) {
+      return 'demo-token';
+    }
     if (!this.token) {
       throw new Error('No authentication token available. Please log in again.');
     }
@@ -211,16 +220,21 @@ class User {
     }
   }
 
-  // Favorites methods
+  // Get favorites
   async getFavorites() {
     try {
+      if (this.isDemo()) {
+        console.log('Demo mode: Getting favorites from AsyncStorage');
+        const storage = await AsyncStorage.getItem('demo_favorites');
+        this.favorites = storage ? JSON.parse(storage) : [];
+        return this.favorites;
+      }
       
-      const url = `${API_URL}/favorites`;
-      
-      const response = await fetch(url, {
+      const response = await fetch(`${API_URL}/favorites`, {
         headers: {
           'Authorization': `Bearer ${this.getToken()}`,
-        },
+          'Content-Type': 'application/json'
+        }
       });
 
       if (!response.ok) {
@@ -230,29 +244,24 @@ class User {
       }
 
       const data = await response.json();
-      
-      // Transform the favorites data to match the Restaurant model structure
-      this.favorites = data.favorites.map(fav => {
-        // Check if the picture is a photo reference or a full URL
-        const isPhotoReference = fav.picture && !fav.picture.startsWith('http');
-        
-        return {
-          id: fav.place_id,
-          place_id: fav.place_id,
-          name: fav.name,
-          vicinity: fav.address,
-          address: fav.address,
-          rating: fav.rating,
-          price_level: fav.price,
-          lat: fav.lat,
-          lng: fav.lng,
-          // Keep the original picture value (could be a photo reference or full URL)
-          picture: fav.picture,
-          // If it's a photo reference, add it to photos array
-          photos: isPhotoReference ? [{ photo_reference: fav.picture }] : []
-        };
+      console.log('📍 Raw favorites data from backend:', data.favorites);
+
+      // Transform the data to ensure location is properly structured
+      this.favorites = (data.favorites || []).map(favorite => {
+        // If we have lat/lng, ensure they're properly structured in a location object
+        if (favorite.lat !== undefined && favorite.lng !== undefined) {
+          return {
+            ...favorite,
+            location: {
+              latitude: favorite.lat,
+              longitude: favorite.lng
+            }
+          };
+        }
+        return favorite;
       });
-      
+
+      console.log('📍 Transformed favorites data:', this.favorites);
       return this.favorites;
     } catch (error) {
       console.error('❌ Error in getFavorites:', error);
@@ -260,72 +269,88 @@ class User {
     }
   }
 
+  // Add favorite
   async addFavorite(restaurant) {
     try {
-      
-      // Transform the restaurant data to match the backend's expected structure
-      const favoriteData = {
-        place_id: restaurant.id || restaurant.place_id,
-        name: restaurant.name,
-        picture: restaurant.photos?.[0]?.photo_reference || restaurant.picture || null,
-        address: restaurant.vicinity || restaurant.address || null,
-        rating: restaurant.rating || null,
-        price: restaurant.price_level || restaurant.price || null,
-        lat: restaurant.location?.latitude || restaurant.lat || restaurant.latitude || null,
-        lng: restaurant.location?.longitude || restaurant.lng || restaurant.longitude || null
+      if (this.isDemo()) {
+        console.log('Demo mode: Adding favorite to AsyncStorage');
+        const storage = await AsyncStorage.getItem('demo_favorites');
+        let favorites = storage ? JSON.parse(storage) : [];
+        
+        // Check if restaurant is already in favorites
+        if (!favorites.some(fav => fav.place_id === restaurant.place_id)) {
+          favorites.push({
+            ...restaurant,
+            added_at: new Date().toISOString() // Add timestamp to match regular API behavior
+          });
+          await AsyncStorage.setItem('demo_favorites', JSON.stringify(favorites));
+          this.favorites = favorites;
+        }
+        return this.favorites;
+      }
+
+      // Transform location data to match backend expectations
+      const restaurantData = {
+        ...restaurant,
+        lat: restaurant.location?.latitude,
+        lng: restaurant.location?.longitude,
       };
-      
-      const url = `${API_URL}/favorites`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.getToken()}`,
-        },
-        body: JSON.stringify(favoriteData),
+
+      console.log('📍 Sending favorite to backend:', {
+        name: restaurantData.name,
+        lat: restaurantData.lat,
+        lng: restaurantData.lng,
+        location: restaurant.location,
+        fullData: restaurantData
       });
 
-      
+      const response = await fetch(`${API_URL}/favorites`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(restaurantData)
+      });
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        console.error('❌ POST Error response:', errorData);
         throw new Error('Failed to add favorite');
       }
 
-      const data = await response.json();
-
       await this.getFavorites(); // Refresh favorites list
-      return true;
+      return this.favorites;
     } catch (error) {
       console.error('❌ Error in addFavorite:', error);
       throw error;
     }
   }
 
+  // Remove favorite
   async removeFavorite(placeId) {
     try {
+      if (this.isDemo()) {
+        console.log('Demo mode: Removing favorite from AsyncStorage');
+        const storage = await AsyncStorage.getItem('demo_favorites');
+        let favorites = storage ? JSON.parse(storage) : [];
+        favorites = favorites.filter(fav => fav.place_id !== placeId);
+        await AsyncStorage.setItem('demo_favorites', JSON.stringify(favorites));
+        this.favorites = favorites;
+        return this.favorites;
+      }
 
-      
-      const url = `${API_URL}/favorites?place_id=${placeId}`;
-      
-      const response = await fetch(url, {
+      const response = await fetch(`${API_URL}/favorites?place_id=${placeId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${this.getToken()}`,
-        },
+          'Authorization': `Bearer ${this.getToken()}`
+        }
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        console.error('❌ DELETE Error response:', errorData);
         throw new Error('Failed to remove favorite');
       }
 
-      const data = await response.json();
-
       await this.getFavorites(); // Refresh favorites list
-      return true;
+      return this.favorites;
     } catch (error) {
       console.error('❌ Error in removeFavorite:', error);
       throw error;
@@ -362,13 +387,19 @@ class User {
     }
   }
 
-  // Playlist methods
+  // Get playlists
   async getPlaylists() {
     try {
+      if (this.isDemo()) {
+        console.log('Demo mode: Getting playlists from AsyncStorage');
+        const storage = await AsyncStorage.getItem('demo_playlists');
+        return storage ? JSON.parse(storage) : [];
+      }
+
       const response = await fetch(`${API_URL}/playlists`, {
         headers: {
-          'Authorization': `Bearer ${this.getToken()}`,
-        },
+          'Authorization': `Bearer ${this.getToken()}`
+        }
       });
 
       if (!response.ok) {
@@ -376,27 +407,45 @@ class User {
       }
 
       const data = await response.json();
-      return data.playlists;
+      return data.playlists || [];
     } catch (error) {
       console.error('Error fetching playlists:', error);
       throw error;
     }
   }
 
+  // Create playlist
   async createPlaylist(name) {
     try {
+      if (this.isDemo()) {
+        console.log('Demo mode: Creating playlist in AsyncStorage');
+        const storage = await AsyncStorage.getItem('demo_playlists');
+        let playlists = storage ? JSON.parse(storage) : [];
+        
+        const newPlaylist = {
+          id: `demo-playlist-${Date.now()}`,
+          name,
+          items: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        playlists.push(newPlaylist);
+        await AsyncStorage.setItem('demo_playlists', JSON.stringify(playlists));
+        return newPlaylist;
+      }
+
       const response = await fetch(`${API_URL}/playlists`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.getToken()}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name })
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create playlist');
+        throw new Error('Failed to create playlist');
       }
 
       const data = await response.json();
@@ -407,12 +456,24 @@ class User {
     }
   }
 
+  // Get playlist items
   async getPlaylistItems(playlistId) {
     try {
+      if (this.isDemo()) {
+        console.log('Demo mode: Getting playlist items from AsyncStorage');
+        const storage = await AsyncStorage.getItem('demo_playlists');
+        if (storage) {
+          const playlists = JSON.parse(storage);
+          const playlist = playlists.find(p => p.id === playlistId);
+          return playlist ? playlist.items : [];
+        }
+        return [];
+      }
+
       const response = await fetch(`${API_URL}/playlists/${playlistId}`, {
         headers: {
-          'Authorization': `Bearer ${this.getToken()}`,
-        },
+          'Authorization': `Bearer ${this.getToken()}`
+        }
       });
 
       if (!response.ok) {
@@ -420,51 +481,50 @@ class User {
       }
 
       const data = await response.json();
-      return (data.items || []).map(item => ({
-        id: item.place_id,
-        place_id: item.place_id,
-        name: item.name,
-        vicinity: item.address,
-        address: item.address,
-        rating: item.rating,
-        price_level: item.price,
-        lat: item.lat,
-        lng: item.lng,
-        picture: item.picture,
-        photos: item.picture && !item.picture.startsWith('http') ? [{ photo_reference: item.picture }] : []
-      }));
+      return data.items || [];
     } catch (error) {
       console.error('Error fetching playlist items:', error);
       throw error;
     }
   }
 
+  // Add to playlist
   async addToPlaylist(playlistId, restaurant) {
     try {
-      // Prepare restaurant data with location information
-      const restaurantData = {
-        place_id: restaurant.place_id || restaurant.id,
-        name: restaurant.name,
-        picture: restaurant.picture,
-        address: restaurant.address || restaurant.vicinity,
-        rating: restaurant.rating,
-        price: restaurant.price_level,
-        lat: restaurant.lat || restaurant.location?.lat,
-        lng: restaurant.lng || restaurant.location?.lng
-      };
+      if (this.isDemo()) {
+        console.log('Demo mode: Adding to playlist in AsyncStorage');
+        const storage = await AsyncStorage.getItem('demo_playlists');
+        let playlists = storage ? JSON.parse(storage) : [];
+        const playlistIndex = playlists.findIndex(p => p.id === playlistId);
+        
+        if (playlistIndex === -1) {
+          throw new Error('Playlist not found');
+        }
+
+        // Check if restaurant is already in playlist
+        if (!playlists[playlistIndex].items.some(item => item.place_id === restaurant.place_id)) {
+          const restaurantWithTimestamp = {
+            ...restaurant,
+            added_at: new Date().toISOString()
+          };
+          playlists[playlistIndex].items.push(restaurantWithTimestamp);
+          playlists[playlistIndex].updated_at = new Date().toISOString();
+          await AsyncStorage.setItem('demo_playlists', JSON.stringify(playlists));
+        }
+        return playlists[playlistIndex];
+      }
 
       const response = await fetch(`${API_URL}/playlists/${playlistId}/items`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.getToken()}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(restaurantData),
+        body: JSON.stringify(restaurant)
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to add to playlist');
+        throw new Error('Failed to add to playlist');
       }
 
       const data = await response.json();
@@ -475,18 +535,36 @@ class User {
     }
   }
 
+  // Remove from playlist
   async removeFromPlaylist(playlistId, placeId) {
     try {
+      if (this.isDemo()) {
+        console.log('Demo mode: Removing from playlist in AsyncStorage');
+        const storage = await AsyncStorage.getItem('demo_playlists');
+        if (storage) {
+          let playlists = JSON.parse(storage);
+          const playlistIndex = playlists.findIndex(p => p.id === playlistId);
+          
+          if (playlistIndex !== -1) {
+            playlists[playlistIndex].items = playlists[playlistIndex].items.filter(
+              item => item.place_id !== placeId
+            );
+            await AsyncStorage.setItem('demo_playlists', JSON.stringify(playlists));
+            return true;
+          }
+        }
+        throw new Error('Playlist not found');
+      }
+
       const response = await fetch(`${API_URL}/playlists/${playlistId}/items?place_id=${placeId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${this.getToken()}`,
-        },
+          'Authorization': `Bearer ${this.getToken()}`
+        }
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to remove from playlist');
+        throw new Error('Failed to remove from playlist');
       }
 
       const data = await response.json();
@@ -497,18 +575,30 @@ class User {
     }
   }
 
+  // Delete playlist
   async deletePlaylist(playlistId) {
     try {
+      if (this.isDemo()) {
+        console.log('Demo mode: Deleting playlist from AsyncStorage');
+        const storage = await AsyncStorage.getItem('demo_playlists');
+        if (storage) {
+          let playlists = JSON.parse(storage);
+          playlists = playlists.filter(p => p.id !== playlistId);
+          await AsyncStorage.setItem('demo_playlists', JSON.stringify(playlists));
+          return true;
+        }
+        throw new Error('Playlist not found');
+      }
+
       const response = await fetch(`${API_URL}/playlists/${playlistId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${this.getToken()}`,
-        },
+          'Authorization': `Bearer ${this.getToken()}`
+        }
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete playlist');
+        throw new Error('Failed to delete playlist');
       }
 
       const data = await response.json();
@@ -581,7 +671,8 @@ class User {
       favorites: this.favorites,
       location: this.location,
       hasInitializedLocation: this.hasInitializedLocation,
-      token: this.token
+      token: this.token,
+      isDemoUser: this.isDemoUser
     };
   }
 

@@ -9,7 +9,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, tryDemo } = useAuth();
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -22,6 +22,15 @@ export default function Login() {
       await login(username.trim(), password.trim());
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Invalid username or password');
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setError('');
+    try {
+      await tryDemo();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to start demo mode');
     }
   };
 
@@ -65,6 +74,13 @@ export default function Login() {
           disabled={isLoading}
         >
           <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.demoButton, isLoading && styles.buttonDisabled]}
+          onPress={handleDemoLogin}
+          disabled={isLoading}
+        >
+          <Text style={styles.demoButtonText}>Try Demo</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           onPress={() => router.push('/signup')}
@@ -121,10 +137,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  demoButton: {
+    backgroundColor: '#284B63',
+    height: 50,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+  },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    fontFamily: 'SmileySans',
+  },
+  demoButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',

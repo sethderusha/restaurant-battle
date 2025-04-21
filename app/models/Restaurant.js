@@ -1,22 +1,35 @@
 class Restaurant {
   constructor(data) {
+    console.log('🏪 Creating Restaurant instance with data:', data);
+
     // Basic identification
     this.id = data.place_id || "";
     this.place_id = data.place_id || ""; // Add place_id for favorites
     this.name = data.name || "";
     
-    // Location
+    // Location - handle all possible location data formats
     this.location = {
-      latitude: data.location?.lat || 0,
-      longitude: data.location?.lng || 0,
+      latitude: data.latitude || data.lat || data.location?.latitude || 0,
+      longitude: data.longitude || data.lng || data.location?.longitude || 0,
     };
+
+    console.log('🏪 Processed location data:', {
+      input: {
+        lat: data.lat,
+        lng: data.lng,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        location: data.location
+      },
+      output: this.location
+    });
 
     // Basic info
     this.vicinity = data.vicinity || "";
     this.address = data.address || data.vicinity || ""; // Add address for favorites
     this.rating = data.rating || 0;
     this.userRatingCount = data.user_ratings_total || 0;
-    this.priceLevel = data.price_level || 0;
+    this.priceLevel = data.price_level || data.price || 0; // Handle both price_level and price
     this.isOpenNow = data.open_now || false;
 
     // Photos - handle both Google Places and favorites format

@@ -60,35 +60,13 @@ export default function ProfileScreen() {
           setLoadingPlaylists(true);
           setError(null);
           
-          // Load favorites
-          const favoritesResponse = await fetch(`${API_URL}/favorites`, {
-            headers: {
-              'Authorization': `Bearer ${user.token}`,
-              'Content-Type': 'application/json'
-            }
-          });
+          // Load favorites using User model method
+          const userFavorites = await user.getFavorites();
+          setFavorites(userFavorites);
 
-          if (!favoritesResponse.ok) {
-            throw new Error('Failed to load favorites');
-          }
-
-          const favoritesData = await favoritesResponse.json();
-          setFavorites(favoritesData.favorites || []);
-
-          // Load playlists
-          const playlistsResponse = await fetch(`${API_URL}/playlists`, {
-            headers: {
-              'Authorization': `Bearer ${user.token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (!playlistsResponse.ok) {
-            throw new Error('Failed to load playlists');
-          }
-
-          const playlistsData = await playlistsResponse.json();
-          setPlaylists(playlistsData.playlists || []);
+          // Load playlists using User model method
+          const userPlaylists = await user.getPlaylists();
+          setPlaylists(userPlaylists);
         } catch (err) {
           console.error('❌ Error loading data:', err);
           setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -318,21 +296,8 @@ export default function ProfileScreen() {
 
     try {
       setError(null);
-      const response = await fetch(`${API_URL}/playlists`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ name: newPlaylistName.trim() })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create playlist');
-      }
-
-      const data = await response.json();
-      setPlaylists([...playlists, { id: data.playlist_id, name: newPlaylistName.trim() }]);
+      const newPlaylist = await user.createPlaylist(newPlaylistName.trim());
+      setPlaylists([...playlists, newPlaylist]);
       setNewPlaylistName('');
       setShowCreatePlaylist(false);
     } catch (err) {
@@ -376,9 +341,9 @@ export default function ProfileScreen() {
         return;
       }
       
-      await user.addManualFavorite(selectedPlaceId as string);
+      await user.addManualFavorite(selectedPlaceId);
       
-      // Refresh favorites
+      // Refresh favorites using User model method
       const updatedFavorites = await user.getFavorites();
       setFavorites(updatedFavorites);
       
@@ -572,6 +537,11 @@ export default function ProfileScreen() {
           style={styles.profilePicture}
         />
         <Text style={styles.displayName}>{user?.displayName || 'User'}</Text>
+        {user?.isDemo() && (
+          <View style={styles.demoBadge}>
+            <Text style={styles.demoBadgeText}>Demo Mode</Text>
+          </View>
+        )}
         <TouchableOpacity
           style={styles.editButton}
           onPress={() => setIsEditing(true)}
@@ -1362,5 +1332,17 @@ const styles = StyleSheet.create({
   filterModalItemText: {
     color: '#fff',
     fontSize: 16,
+  },
+  demoBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginTop: 8,
+  },
+  demoBadgeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'SmileySans',
   },
 }); 

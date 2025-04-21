@@ -7,8 +7,8 @@ const { API_URL } = require('../config');
 
 let restaurantData = [];
 let currentIndex = 0;
-// Check both environment variables for test mode
-let isTestMode = process.env.TEST_MODE === 'true' || process.env.EXPO_PUBLIC_TEST_MODE === 'true';
+// Default to false, will be updated when checked
+let isTestMode = false;
 
 // Base URL configuration
 const getBaseUrl = () => {
@@ -39,10 +39,26 @@ const getStorage = () => {
   return AsyncStorage;
 };
 
+// Check if test mode is enabled
+const checkTestMode = async () => {
+  try {
+    const storage = getStorage();
+    const testMode = await storage.getItem('test_mode');
+    isTestMode = testMode === 'true';
+    return isTestMode;
+  } catch (error) {
+    console.error('Error checking test mode:', error);
+    return false;
+  }
+};
+
 // Add a request interceptor to add the auth token to requests
 apiClient.interceptors.request.use(
   async (config) => {
     try {
+      // Check test mode status
+      await checkTestMode();
+      
       const storage = getStorage();
       const userData = await storage.getItem('user');
       if (userData) {
@@ -87,9 +103,15 @@ const getNextTestRestaurant = () => {
 };
 
 // Export function to set test mode
-const setTestMode = (enabled) => {
-  isTestMode = enabled;
-  console.log('Test mode set to:', enabled);
+const setTestMode = async (enabled) => {
+  try {
+    const storage = getStorage();
+    await storage.setItem('test_mode', enabled.toString());
+    isTestMode = enabled;
+    console.log('Test mode set to:', enabled);
+  } catch (error) {
+    console.error('Error setting test mode:', error);
+  }
 };
 
 // Authentication endpoints
@@ -211,6 +233,7 @@ const getNearbyRestaurants = async (
   longitude,
   radius = 1000,
 ) => {
+  // Only use test data if explicitly in test mode
   if (isTestMode) {
     console.log('Test mode: Loading test restaurants');
     if (restaurantData.length === 0) {
@@ -223,6 +246,7 @@ const getNearbyRestaurants = async (
     };
   }
 
+  // For both regular and demo users, use the real API
   try {
     const response = await apiClient.get("/api/nearby-restaurants", {
       params: {
@@ -240,6 +264,7 @@ const getNearbyRestaurants = async (
 };
 
 const getNextRestaurant = async (sessionId) => {
+  // Only use test data if explicitly in test mode
   if (isTestMode) {
     console.log('Test mode: Getting next test restaurant');
     if (restaurantData.length === 0) {
@@ -256,6 +281,7 @@ const getNextRestaurant = async (sessionId) => {
     };
   }
 
+  // For both regular and demo users, use the real API
   try {
     const response = await apiClient.post("/api/next-restaurant", {
       session_id: sessionId,
@@ -285,10 +311,12 @@ const resetSession = async (sessionId) => {
 
 // Helper function to get photo URL
 const getPhotoUrl = (photoReference, maxWidth = 400) => {
+  // Only use test photos if explicitly in test mode
   if (isTestMode) {
     console.log('Test mode: Returning test photo URL');
     return `https://via.placeholder.com/${maxWidth}`;
   }
+  // For both regular and demo users, use the real API
   return `${API_BASE_URL}/api/photo?photo_reference=${photoReference}&max_width=${maxWidth}`;
 };
 

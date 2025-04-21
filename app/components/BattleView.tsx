@@ -148,7 +148,11 @@ export function BattleView({
         const currentCard = isLeftCard ? leftCard : rightCard;
         
         if (currentCard.restaurant) {
-          console.log(`🔍 Adding favorite for restaurant: ${currentCard.name}`);
+          console.log(`🔍 Adding favorite for restaurant:`, {
+            name: currentCard.name,
+            location: currentCard.restaurant.location,
+            fullData: currentCard.restaurant
+          });
           await user.addFavorite(currentCard.restaurant);
         }
       } else {
