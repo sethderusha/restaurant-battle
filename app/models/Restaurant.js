@@ -9,8 +9,8 @@ class Restaurant {
     
     // Location - handle all possible location data formats
     this.location = {
-      latitude: data.latitude || data.lat || data.location?.latitude || 0,
-      longitude: data.longitude || data.lng || data.location?.longitude || 0,
+      latitude: data.latitude || data.lat || data.location?.latitude || data.location?.lat || 0,
+      longitude: data.longitude || data.lng || data.location?.longitude || data.location?.lng || 0,
     };
 
     console.log('🏪 Processed location data:', {

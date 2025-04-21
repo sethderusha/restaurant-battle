@@ -9,8 +9,11 @@ class User {
     this.username = data.username || '';
     this.displayName = data.displayName || '';
     this.token = data.token || null;
-    this.location = null;
-    this.hasInitializedLocation = false;
+    this.location = data.location || {
+      latitude: 40.729149,
+      longitude: -73.997459
+    };
+    this.hasInitializedLocation = data.hasInitializedLocation || false;
     this.profilePicture = data.profilePicture || 'default';
     this.isDemoUser = data.isDemoUser || false;
 
@@ -95,9 +98,13 @@ class User {
       return this.location;
     } catch (error) {
       console.error("Failed to update location:", error);
-      // Instead of throwing an error, return null to indicate failure
-      // This allows the UI to handle the failure and prompt for manual input
-      return null;
+      // Use default location instead of returning null
+      this.location = {
+        latitude: 40.729149,
+        longitude: -73.997459
+      };
+      this.hasInitializedLocation = true;
+      return this.location;
     }
   }
 
