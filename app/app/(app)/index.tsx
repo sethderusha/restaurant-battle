@@ -11,17 +11,18 @@ export default function Index() {
     return <LoadingOverlay message="Loading..." />;
   }
 
-  // Example cards - replace with real data from your API
+  // These are just placeholder cards until real data loads
+  // Use empty data since these will be replaced
   const leftCard: CardProps = {
-    name: "San Marzano",
-    image: "https://lh5.googleusercontent.com/p/AF1QipOJIoxbkEWctMAecij3sWNHAMTnlErwDhq8GZ4e=w408-h306-k-no",
-    place_id: "san-marzano-id" // Add a placeholder ID
+    name: "Loading...",
+    image: null,
+    place_id: "", 
   };
 
   const rightCard: CardProps = {
-    name: "Veselka",
-    image: "https://lh5.googleusercontent.com/p/AF1QipNrZx3OFboCC9wJj0-mEzmxbK4niClm5jsp9T3d=w408-h307-k-no",
-    place_id: "veselka-id" // Add a placeholder ID
+    name: "Loading...",
+    image: null,
+    place_id: "",
   };
 
   return (
