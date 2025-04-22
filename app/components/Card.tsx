@@ -51,24 +51,16 @@ export const Card = memo(function Card({
 
     // Update internal state when initialIsFavorite prop changes
     useEffect(() => {
-        // Only update if the value has actually changed
-        if (prevIsFavoriteRef.current !== initialIsFavorite) {
-            console.log(`🔍 Card useEffect: Updating isFavorite from ${prevIsFavoriteRef.current} to ${initialIsFavorite} for place_id: ${place_id}`);
-            setIsFavorite(initialIsFavorite);
-            prevIsFavoriteRef.current = initialIsFavorite;
-        }
-    }, [initialIsFavorite, place_id]);
-
-    // Force update the favorite state when the component mounts
-    useEffect(() => {
-        console.log(`🔍 Card mount effect: Setting isFavorite to ${initialIsFavorite} for place_id: ${place_id}`);
+        console.log(`🔍 Card useEffect: Received initialIsFavorite=${initialIsFavorite} for place_id: ${place_id}`);
         setIsFavorite(initialIsFavorite);
         prevIsFavoriteRef.current = initialIsFavorite;
-    }, []);
+    }, [initialIsFavorite, place_id]);
 
     const changeLike = () => {
         const newFavoriteState = !isFavorite;
         console.log(`🔍 Card changeLike called for place_id: ${place_id}, current state: ${isFavorite}, new state: ${newFavoriteState}`);
+        
+        // Update local state immediately for better UX
         setIsFavorite(newFavoriteState);
         
         // Call the onFavoriteToggle callback if provided
