@@ -532,43 +532,41 @@ export function BattleView({
         <View style={[styles.cardsContainer, isMobile? styles.mobileCardsContainer : styles.desktopCardsContainer]}>
           <TouchableOpacity
             onPress={() => handleCardClick("left")}
-            style={[styles.cardTouchable, isMobile? styles.mobileCardTouchable : styles.desktopCardTouchable]}
+            style={[styles.cardContainer, isMobile && styles.mobileCardContainer]}
             activeOpacity={0.7}
           >
-            <React.Fragment key={`left-card-container-${leftCard.place_id || "placeholder"}-${leftCard.isFavorite ? "fav" : "notfav"}`}>
-              <Card 
-                name={leftCard.name} 
-                image={leftCard.image} 
-                place_id={leftCard.place_id}
-                vicinity={leftCard.vicinity}
-                rating={leftCard.rating}
-                price_level={leftCard.price_level}
-                isOpenNow={leftCard.isOpenNow}
-                isFavorite={leftCard.isFavorite}
-                onFavoriteToggle={handleFavoriteToggle}
-                restaurant={leftCard.restaurant}
-              />
-            </React.Fragment>
+            <Card 
+              key={`left-card-${leftCard.place_id || "placeholder"}-${leftCard.isFavorite ? "fav" : "notfav"}`}
+              name={leftCard.name} 
+              image={leftCard.image} 
+              place_id={leftCard.place_id}
+              vicinity={leftCard.vicinity}
+              rating={leftCard.rating}
+              price_level={leftCard.price_level}
+              isOpenNow={leftCard.isOpenNow}
+              isFavorite={leftCard.isFavorite}
+              onFavoriteToggle={handleFavoriteToggle}
+              restaurant={leftCard.restaurant}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleCardClick("right")}
-            style={[styles.cardTouchable, isMobile? styles.mobileCardTouchable : styles.desktopCardTouchable]}
+            style={[styles.cardContainer, isMobile && styles.mobileCardContainer]}
             activeOpacity={0.7}
           >
-            <React.Fragment key={`right-card-container-${rightCard.place_id || "placeholder"}-${rightCard.isFavorite ? "fav" : "notfav"}`}>
-              <Card 
-                name={rightCard.name} 
-                image={rightCard.image} 
-                place_id={rightCard.place_id}
-                vicinity={rightCard.vicinity}
-                rating={rightCard.rating}
-                price_level={rightCard.price_level}
-                isOpenNow={rightCard.isOpenNow}
-                isFavorite={rightCard.isFavorite}
-                onFavoriteToggle={handleFavoriteToggle}
-                restaurant={rightCard.restaurant}
-              />
-            </React.Fragment>
+            <Card 
+              key={`right-card-${rightCard.place_id || "placeholder"}-${rightCard.isFavorite ? "fav" : "notfav"}`}
+              name={rightCard.name} 
+              image={rightCard.image} 
+              place_id={rightCard.place_id}
+              vicinity={rightCard.vicinity}
+              rating={rightCard.rating}
+              price_level={rightCard.price_level}
+              isOpenNow={rightCard.isOpenNow}
+              isFavorite={rightCard.isFavorite}
+              onFavoriteToggle={handleFavoriteToggle}
+              restaurant={rightCard.restaurant}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -596,6 +594,7 @@ const styles = StyleSheet.create({
   cardsContainer: { //holds 2 cards
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
   desktopCardsContainer: {
     flexDirection: "row",
@@ -604,11 +603,15 @@ const styles = StyleSheet.create({
   mobileCardsContainer: {
     width: "100%",
     flexDirection: 'column',
-    gap:20,
+    gap: 20,
   },
   cardContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Add specific styles for mobile card container
+  mobileCardContainer: {
+    width: '100%',
   },
   errorText: {
     color: "red",
@@ -630,19 +633,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  cardTouchable: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mobileCardTouchable: {
-    width: "100%",
-    flexDirection: 'column',
-    gap:20,
-  },
-  desktopCardTouchable: {
-    flexDirection: "row",
-    gap: 60,
   },
 });
