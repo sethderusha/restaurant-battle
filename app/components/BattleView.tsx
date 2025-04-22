@@ -532,10 +532,10 @@ export function BattleView({
         <View style={[styles.cardsContainer, isMobile? styles.mobileCardsContainer : styles.desktopCardsContainer]}>
           <TouchableOpacity
             onPress={() => handleCardClick("left")}
-            style={[styles.cardsContainer, isMobile? styles.mobileCardsContainer : styles.desktopCardsContainer]}
+            style={[styles.cardTouchable, isMobile? styles.mobileCardTouchable : styles.desktopCardTouchable]}
             activeOpacity={0.7}
           >
-            <View key={`left-card-container-${leftCard.place_id || "placeholder"}-${leftCard.isFavorite ? "fav" : "notfav"}`}>
+            <React.Fragment key={`left-card-container-${leftCard.place_id || "placeholder"}-${leftCard.isFavorite ? "fav" : "notfav"}`}>
               <Card 
                 name={leftCard.name} 
                 image={leftCard.image} 
@@ -548,14 +548,14 @@ export function BattleView({
                 onFavoriteToggle={handleFavoriteToggle}
                 restaurant={leftCard.restaurant}
               />
-            </View>
+            </React.Fragment>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleCardClick("right")}
-            style={[styles.cardsContainer, isMobile? styles.mobileCardsContainer : styles.desktopCardsContainer]}
+            style={[styles.cardTouchable, isMobile? styles.mobileCardTouchable : styles.desktopCardTouchable]}
             activeOpacity={0.7}
           >
-            <View key={`right-card-container-${rightCard.place_id || "placeholder"}-${rightCard.isFavorite ? "fav" : "notfav"}`}>
+            <React.Fragment key={`right-card-container-${rightCard.place_id || "placeholder"}-${rightCard.isFavorite ? "fav" : "notfav"}`}>
               <Card 
                 name={rightCard.name} 
                 image={rightCard.image} 
@@ -568,7 +568,7 @@ export function BattleView({
                 onFavoriteToggle={handleFavoriteToggle}
                 restaurant={rightCard.restaurant}
               />
-            </View>
+            </React.Fragment>
           </TouchableOpacity>
         </View>
       </View>
@@ -630,5 +630,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  cardTouchable: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mobileCardTouchable: {
+    width: "100%",
+    flexDirection: 'column',
+    gap:20,
+  },
+  desktopCardTouchable: {
+    flexDirection: "row",
+    gap: 60,
   },
 });

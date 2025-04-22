@@ -1,5 +1,5 @@
 import React, {useState, useRef, useEffect, memo} from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Linking, Clipboard, Animated, useWindowDimensions, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Linking, Clipboard, Animated, useWindowDimensions, Dimensions, Platform } from 'react-native';
 // import './Card.css';
 //Card components:
     //Name
@@ -36,8 +36,28 @@ export const Card = memo(function Card({
     const isMobile = width < 768;
     
     const handleTitlePress = () => {
-        const url = `https://www.google.com/maps/place/?q=place_id:${place_id}`;
-        Linking.openURL(url).catch((err) => console.error('Error opening Maps:', err));
+        // Create URL differently based on platform for better mobile compatibility
+        let url;
+        if (Platform.OS === 'ios' || Platform.OS === 'android') {
+            // Mobile devices - use maps:// protocol or direct google maps URL
+            url = `https://maps.google.com/?cid=${place_id}`;
+            // Alternative format if cid doesn't work
+            if (!place_id.match(/^\d+$/)) {
+                url = `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}&query_place_id=${place_id}`;
+            }
+        } else {
+            // Desktop
+            url = `https://www.google.com/maps/place/?q=place_id:${place_id}`;
+        }
+        
+        Linking.openURL(url).catch((err) => {
+            console.error('Error opening Maps:', err);
+            // Fallback URL if the specific format fails
+            const fallbackUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}`;
+            Linking.openURL(fallbackUrl).catch((err2) => 
+                console.error('Error opening fallback Maps URL:', err2)
+            );
+        });
     };
 
     // Use a ref to track the previous value of initialIsFavorite
@@ -75,7 +95,14 @@ export const Card = memo(function Card({
     };
 
     const handleShare = () => {
-        const url = `https://www.google.com/maps/place/?q=place_id:${place_id}`;
+        // Use the same improved URL format for sharing
+        let url;
+        if (Platform.OS === 'ios' || Platform.OS === 'android') {
+            url = `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}&query_place_id=${place_id}`;
+        } else {
+            url = `https://www.google.com/maps/place/?q=place_id:${place_id}`;
+        }
+        
         Clipboard.setString(url);
         
         // Change to selected image
