@@ -335,9 +335,11 @@ const styles = StyleSheet.create({
     },
     mobileDetailText: {
         fontSize: 12,
+        lineHeight: 12
     },
     desktopDetailText: {
-        fontSize: 15
+        fontSize: 15,
+        lineHeight: 20
     },
     openText: {
         color: '#4CAF50',
