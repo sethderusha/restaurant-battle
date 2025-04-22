@@ -32,19 +32,32 @@ export function GoogleMapView({ items }: GoogleMapViewProps) {
 
   // Helper to extract location from a restaurant
   const getRestaurantLocation = (restaurant: Restaurant) => {
+    const restaurantAny = restaurant as any; // Use type assertion to access possible lat/lng properties
+    
     console.log('🗺️ Getting location for restaurant:', {
       name: restaurant.name,
       location: restaurant.location,
-      raw: restaurant
+      lat: restaurantAny.lat,
+      lng: restaurantAny.lng,
     });
     
-    // Check if we have valid location data
+    // First check if we have the location object format
     if (restaurant.location?.latitude && restaurant.location?.longitude) {
       const location = {
         lat: restaurant.location.latitude,
         lng: restaurant.location.longitude
       };
-      console.log('🗺️ Valid location found:', location);
+      console.log('🗺️ Found location in location object:', location);
+      return location;
+    }
+    
+    // Fall back to lat/lng direct properties if available
+    if (restaurantAny.lat !== undefined && restaurantAny.lng !== undefined) {
+      const location = {
+        lat: restaurantAny.lat,
+        lng: restaurantAny.lng
+      };
+      console.log('🗺️ Found location in lat/lng properties:', location);
       return location;
     }
 

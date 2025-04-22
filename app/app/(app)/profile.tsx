@@ -94,6 +94,7 @@ export default function ProfileScreen() {
     
     console.log('🔍 Selecting playlist:', playlist.id, playlist.name);
     setSelectedPlaylist(playlist);
+    setPlaylistItems([]); // Clear current items while loading
     setLoadingPlaylistItems(true);
     setError(null);
 
@@ -105,6 +106,7 @@ export default function ProfileScreen() {
     } catch (err) {
       console.error('❌ Error loading playlist items:', err);
       setError(err instanceof Error ? err.message : 'Failed to load playlist items');
+      // Keep the selected playlist but show the error
     } finally {
       console.log('🏁 Finished loading playlist items');
       setLoadingPlaylistItems(false);
@@ -172,7 +174,30 @@ export default function ProfileScreen() {
   // Memoize the playlist items rendering
   const renderPlaylistItems = useCallback((playlistId: number) => {
     if (loadingPlaylistItems) {
-      return <Text style={styles.emptyText}>Loading playlist items...</Text>;
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#fff" />
+          <Text style={styles.loadingText}>Loading items...</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => {
+              if (selectedPlaylist) {
+                handleSelectPlaylist(selectedPlaylist);
+              }
+            }}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
     }
 
     if (!playlistItems || playlistItems.length === 0) {
@@ -218,7 +243,7 @@ export default function ProfileScreen() {
         ))}
       </View>
     );
-  }, [playlistItems, loadingPlaylistItems, handleRemoveFromPlaylist]);
+  }, [playlistItems, loadingPlaylistItems, handleRemoveFromPlaylist, error, selectedPlaylist, handleSelectPlaylist]);
 
   // Add refreshPlaylistItems to the onRefresh function
   const onRefresh = useCallback(async () => {
@@ -296,8 +321,12 @@ export default function ProfileScreen() {
 
     try {
       setError(null);
-      const newPlaylist = await user.createPlaylist(newPlaylistName.trim());
-      setPlaylists([...playlists, newPlaylist]);
+      await user.createPlaylist(newPlaylistName.trim());
+      
+      // Properly refresh the playlists from the server instead of just appending locally
+      const updatedPlaylists = await user.getPlaylists();
+      setPlaylists(updatedPlaylists);
+      
       setNewPlaylistName('');
       setShowCreatePlaylist(false);
     } catch (err) {
@@ -315,9 +344,15 @@ export default function ProfileScreen() {
       
       // Refresh playlist items if the playlist is selected
       if (selectedPlaylist && selectedPlaylist.id === playlistId) {
+        setLoadingPlaylistItems(true);
         const updatedItems = await user.getPlaylistItems(playlistId);
         setPlaylistItems(updatedItems);
+        setLoadingPlaylistItems(false);
       }
+      
+      // Always refresh playlists to ensure they're up to date
+      const updatedPlaylists = await user.getPlaylists();
+      setPlaylists(updatedPlaylists);
       
       setShowAddToPlaylist(false);
       setSelectedFavorite(null);
@@ -1341,6 +1376,24 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   demoBadgeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'SmileySans',
+  },
+  errorContainer: {
+    padding: 15,
+    marginTop: 10,
+    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  retryButton: {
+    marginTop: 10,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  retryButtonText: {
     color: '#fff',
     fontSize: 14,
     fontFamily: 'SmileySans',

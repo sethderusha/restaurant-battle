@@ -488,7 +488,25 @@ class User {
       }
 
       const data = await response.json();
-      return data.items || [];
+      console.log('📍 Raw playlist items from backend:', data.items);
+      
+      // Transform the data to ensure location is properly structured
+      const transformedItems = (data.items || []).map(item => {
+        // If we have lat/lng, ensure they're properly structured in a location object
+        if (item.lat !== undefined && item.lng !== undefined) {
+          return {
+            ...item,
+            location: {
+              latitude: item.lat,
+              longitude: item.lng
+            }
+          };
+        }
+        return item;
+      });
+      
+      console.log('📍 Transformed playlist items:', transformedItems);
+      return transformedItems;
     } catch (error) {
       console.error('Error fetching playlist items:', error);
       throw error;
@@ -510,8 +528,15 @@ class User {
 
         // Check if restaurant is already in playlist
         if (!playlists[playlistIndex].items.some(item => item.place_id === restaurant.place_id)) {
+          // Ensure location data is properly formatted
+          const restaurantWithProperLocation = { ...restaurant };
+          if (restaurant.location?.latitude && restaurant.location?.longitude) {
+            restaurantWithProperLocation.lat = restaurant.location.latitude;
+            restaurantWithProperLocation.lng = restaurant.location.longitude;
+          }
+          
           const restaurantWithTimestamp = {
-            ...restaurant,
+            ...restaurantWithProperLocation,
             added_at: new Date().toISOString()
           };
           playlists[playlistIndex].items.push(restaurantWithTimestamp);
@@ -521,13 +546,22 @@ class User {
         return playlists[playlistIndex];
       }
 
+      // Ensure location data is properly formatted for the API call
+      let restaurantData = { ...restaurant };
+      if (restaurant.location?.latitude && restaurant.location?.longitude) {
+        restaurantData.lat = restaurant.location.latitude;
+        restaurantData.lng = restaurant.location.longitude;
+      }
+      
+      console.log('📍 Adding to playlist, restaurant data:', restaurantData);
+
       const response = await fetch(`${API_URL}/playlists/${playlistId}/items`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.getToken()}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(restaurant)
+        body: JSON.stringify(restaurantData)
       });
 
       if (!response.ok) {
